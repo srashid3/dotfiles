@@ -1,0 +1,163 @@
+"actions": 
+[
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+1"
+    },
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+2"
+    },
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+3"
+    },
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+4"
+    },
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+5"
+    },
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+6"
+    },
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+7"
+    },
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+8"
+    },
+    {
+        "command": "unbound",
+        "keys": "ctrl+alt+9"
+    },
+    {
+        "command": "unbound",
+        "keys": "alt+shift+minus"
+    },
+    {
+        "command": "unbound",
+        "keys": "alt+shift+plus"
+    },
+    {
+        "command": 
+        {
+            "action": "copy",
+            "singleLine": false
+        },
+        "keys": "ctrl+c"
+    },
+    {
+        "command": "paste",
+        "keys": "ctrl+v"
+    },
+    {
+        "command": "find",
+        "keys": "ctrl+shift+f"
+    },
+    {
+        "command": 
+        {
+            "action": "splitPane",
+            "split": "auto",
+            "splitMode": "duplicate"
+        },
+        "keys": "alt+shift+d"
+    },
+    {
+        "command": 
+        {
+            "action": "splitPane",
+            "split": "down",
+            "splitMode": "duplicate"
+        },
+        "keys": "ctrl+shift+minus"
+    },
+    {
+        "command": 
+        {
+            "action": "splitPane",
+            "split": "right",
+            "splitMode": "duplicate"
+        },
+        "keys": "ctrl+shift+plus"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 0
+        },
+        "keys": "alt+1"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 1
+        },
+        "keys": "alt+2"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 2
+        },
+        "keys": "alt+3"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 3
+        },
+        "keys": "alt+4"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 4
+        },
+        "keys": "alt+5"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 5
+        },
+        "keys": "alt+6"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 6
+        },
+        "keys": "alt+7"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 7
+        },
+        "keys": "alt+8"
+    },
+    {
+        "command": 
+        {
+            "action": "switchToTab",
+            "index": 4294967295
+        },
+        "keys": "alt+9"
+    }
+
+]
