@@ -1,0 +1,769 @@
+#+title: Emacs Configuration
+#+property: header-args:emacs-lisp :results silent :tangle ~/.emacs.d/init.el
+#+auto_tangle: t
+#+flyspell: nil
+
+* Setup
+
+Initial setup for a clean install of Emacs.
+
+1) Disable the default package management system in *early-init.el.*
+
+#+begin_src emacs-lisp :tangle no
+  (setq package-enable-at-startup nil)
+#+end_src
+
+2) Initialize various packages.
+
+#+begin_src emacs-lisp :tangle no
+  (eat-compile-term-info)
+  (nerd-icons-install-fonts)
+#+end_src
+
+3) Install external dependencies.
+
+- aspell
+- clangd
+- pylsp
+
+* Cross-Platform Support
+
+Emacs support on different operating systems.
+
+** macOS
+
+[[https://github.com/d12frosted/homebrew-emacs-plus][Emacs Plus]] provides GNU Emacs with macOS specific patches. To install with Homebrew, run the following commands.
+
+#+begin_src shell
+brew tap d12frosted/emacs-plus
+brew install emacs-plus
+#+end_src
+
+For a potential performance boost, consider installing *gccemacs* with the flag below. Refer to the documentation on [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Byte-Compilation.html][byte]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Native-Compilation.html][native]] compilation.
+
+#+begin_src shell
+brew install emacs-plus --with-native-comp
+#+end_src
+
+To add Emacs to *Applications*, create a symbolic link.
+
+#+begin_src shell
+$ ln -s /opt/homebrew/opt/emacs-plus/Emacs.app /Applications
+#+end_src
+
+** Linux
+
+Download GNU Emacs using the package manager for your distribution. For Debian based systems, run the following command.
+
+#+begin_src shell
+sudo apt install emacs 
+#+end_src
+
+Alternatively, you can build Emacs from source. Download the tarball from the [[https://ftp.gnu.org/gnu/emacs/][GNU FTP Server]] and run the following commands.
+
+#+begin_src shell
+mkdir build && cd build
+cd ../configure
+make
+sudo make install
+#+end_src
+
+** Windows
+
+Download and install GNU Emacs for Windows from the [[https://ftp.gnu.org/gnu/emacs/windows/][GNU FTP Server]].
+
+* User Directories
+
+Update the default files and directories used by Emacs.
+
+** Backups
+
+Change the default backup directory.
+
+#+begin_src emacs-lisp
+  (setq backup-directory-alist '(("." . "~/.emacs-backups")))
+#+end_src
+
+** Custom File
+
+Manage the customization interface in a separate file.
+
+#+begin_src emacs-lisp
+  (setq custom-file (concat user-emacs-directory "custom.el"))
+#+end_src
+
+* Package Management
+
+Configure the package management system for Emacs.
+
+The built-in package manager for Emacs is *package.el*. By default, Emacs uses [[https://elpa.gnu.org/][GNU Elpa]] as the package archive. To add addtional package archives, such as [[https://melpa.org/][MELPA]], add the appropriate link to *package-archives.*
+
+** Elpaca
+
+[[https://github.com/progfolio/elpaca][Elpaca]] is an Elisp package manager with support for asynchronous, non-blocking installations. Package installations are internally managed as recipes, menus, and orders. Similar to [[https://github.com/radian-software/straight.el][straight.el]], Elpaca installs packages as Git repositories.
+
+The following will clone and configure Elpaca in the user's Emacs directory.
+
+#+begin_src emacs-lisp
+  (defvar elpaca-installer-version 0.6)
+
+  (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+  (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+  (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+
+  (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+				:ref nil
+				:files (:defaults "elpaca-test.el" (:exclude "extensions"))
+				:build (:not elpaca--activate-package)))
+
+  (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+	 (build (expand-file-name "elpaca/" elpaca-builds-directory))
+	 (order (cdr elpaca-order))
+	 (default-directory repo))
+    (add-to-list 'load-path (if (file-exists-p build) build repo))
+    (unless (file-exists-p repo)
+      (make-directory repo t)
+      (when (< emacs-major-version 28) (require 'subr-x))
+      (condition-case-unless-debug err
+	  (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+		   ((zerop (call-process "git" nil buffer t "clone"
+					 (plist-get order :repo) repo)))
+		   ((zerop (call-process "git" nil buffer t "checkout"
+					 (or (plist-get order :ref) "--"))))
+		   (emacs (concat invocation-directory invocation-name))
+		   ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+					 "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+		   ((require 'elpaca))
+		   ((elpaca-generate-autoloads "elpaca" repo)))
+	      (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+	    (error "%s" (with-current-buffer buffer (buffer-string))))
+	((error) (warn "%s" err) (delete-directory repo 'recursive))))
+    (unless (require 'elpaca-autoloads nil t)
+      (require 'elpaca)
+      (elpaca-generate-autoloads "elpaca" repo)
+      (load "./elpaca-autoloads")))
+  
+  (add-hook 'after-init-hook #'elpaca-process-queues)
+  (elpaca `(,@elpaca-order))
+#+end_src
+
+Note that Elpaca requires the default package manager to be disabled. Add the following configuration to *early-init.el*.
+
+#+begin_src emacs-lisp :tangle no
+  (setq package-enable-at-startup nil)
+#+end_src
+
+Elpaca will first read the entire init file and then process its package queues. Each order is automatically placed in a queue. Use *elpaca-wait* to block the current queue and place proceeding orders in a new queue. For built-in packages, use *elpaca nil* to avoid installing anything.
+
+** Use Package
+
+As of Emacs >= 29, the [[https://github.com/jwiegley/use-package][use-package]] macro is already built-in. Enable Elpaca support for use-package.
+
+#+begin_src emacs-lisp
+  (elpaca elpaca-use-package
+    (elpaca-use-package-mode)
+    (setq elpaca-use-package-by-default t))
+
+  (elpaca-wait)
+#+end_src
+
+Note that *use-package-always-ensure* is specific to *package.el* and should not be used alongside Elpaca.
+
+#+begin_src emacs-lisp :tangle no
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package))
+
+  (require 'use-package)
+
+  (setq use-package-always-ensure t)
+#+end_src
+
+* Minibuffer Completion
+
+Customize minibuffer completion in Emacs.
+
+Emacs originally introduced minibuffer completion with the addition of *completing-read*. Since then, various improvements have been added to the default completer. Some noteable features include:
+
+- Catergory aware completion
+- Cycling through completion candidates
+- Support for flex matching
+- Incremental completion (*icomplete-mode*)
+- Vertical completion (*icomplete-vertical-mode*)
+
+Note that older completion frameworks, such as *IDO*, required patches to work with Emacs. However, packages can now hook into Emacs natively with *completing-read-function*.
+
+** Ivy
+
+[[https://github.com/abo-abo/swiper][Ivy]] is a generic completion mechanism for Emacs. By itself, Ivy only replaces all *completing-read-function* calls with *ivy-completing-read-function*.
+
+Configure Ivy with virtual buffers to track recent files and bookmarks. Ignore diagnostic buffers such as the logs created by lsp-mode. Toggle the visibility of ignored buffers with *C-c C-a*.
+
+#+begin_src emacs-lisp
+  (use-package ivy
+    :diminish
+    :init (ivy-mode 1)
+    :config
+    (add-to-list 'ivy-ignore-buffers "\\*.*log*.*\\*")
+    (add-to-list 'ivy-ignore-buffers "\\*.*lsp*.*\\*")
+    (add-to-list 'ivy-ignore-buffers "\\*.*clangd*.*\\*")
+    (add-to-list 'ivy-ignore-buffers "\\*Messages\\*")
+    :custom
+    (ivy-use-virtual-buffers t)
+    (ivy-count-format "%d/%d "))
+#+end_src
+
+Install [[https://github.com/Yevgnen/ivy-rich][ivy-rich]] to provide additional detail for variables and functions.
+
+#+begin_src emacs-lisp
+  (use-package ivy-rich
+     :after counsel
+     :init (ivy-rich-mode 1))
+#+end_src
+
+** Counsel
+
+Counsel provides improved integration with Ivy for common Emacs functions. Enable *counsel-mode* to remap all built-in Emacs functions their Counsel equivalent.
+
+#+begin_src emacs-lisp
+  (use-package counsel
+    :bind (("M-x" . counsel-M-x)
+           ("C-x b" . counsel-switch-buffer)
+           ("C-x C-f" . counsel-find-file)
+           ("C-h f" . counsel-describe-function)
+           ("C-h v" . counsel-describe-variable)))
+#+end_src
+
+** Swiper
+
+Swiper is an alternative to *isearch* that uses Ivy to display matches.
+
+#+begin_src emacs-lisp
+  (use-package swiper
+    :bind (("C-s" . 'swiper)))
+#+end_src
+
+* Project Management
+
+Packages related to project management within Emacs.
+
+** Projectile
+
+Install [[https://github.com/bbatsov/projectile][Projectile]] with Ivy as as the completion system.
+
+#+begin_src emacs-lisp
+  (use-package projectile
+    :diminish projectile-mode
+    :init (projectile-mode 1)
+    :bind-keymap ("C-c p" . projectile-command-map)
+    :custom
+    (projectile-completion-system 'ivy)
+    (projectile-project-search-path '("~/Github")))
+#+end_src
+
+Install [[https://github.com/ericdanan/counsel-projectile][counsel-projectile]] for an improved with Ivy.
+
+#+begin_src emacs-lisp
+  (use-package counsel-projectile
+    :init (counsel-projectile-mode 1))
+#+end_src
+
+** Magit
+
+[[https://magit.vc/][Magit]] is a text-based user interface for Git.
+
+#+begin_src emacs-lisp
+  (use-package magit)
+#+end_src
+
+* User Interface
+
+Customize the Emacs user interface.
+
+** GUI Mode
+
+Disable unused elements in GUI mode such as menu and scroll bars.
+
+#+begin_src emacs-lisp
+  (menu-bar-mode -1)
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+  (tooltip-mode -1)
+#+end_src
+
+** Dashboard
+
+Replace the default startup message with [[https://github.com/emacs-dashboard/emacs-dashboard][emacs-dashboard]].
+
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :config
+    (add-hook 'elpaca-after-init-hook #'dashboard-insert-startupify-lists)
+    (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
+    (dashboard-setup-startup-hook)
+    :custom
+    (dashboard-startup-banner 'logo)
+    (dashboard-center-content t)
+    (dashboard-set-footer nil)
+    (dashboard-items '((recents . 5)
+                       (projects . 5)
+                       (bookmarks . 5))))
+#+end_src
+
+** Cursor Postion
+
+By default, Emacs will only display the current row on the modeline. Enable *column-number-mode* to display the current column.
+
+#+begin_src emacs-lisp
+  (column-number-mode)
+#+end_src
+
+** Line Numbers
+
+Display line numbers in all buffers except for org-mode and terminals. 
+
+#+begin_src emacs-lisp
+  (global-display-line-numbers-mode t)
+
+  (dolist (mode '(org-mode-hook
+                  term-mode-hook
+                  eshell-mode-hook
+                  eat-mode-hook))
+    (add-hook mode (lambda() (display-line-numbers-mode 0))))
+#+end_src
+
+** Text Selection
+
+By default, Emacs will append to the end of selected text. Enable *delete-selection-mode* to delete the selected text instead.
+
+#+begin_src emacs-lisp
+  (delete-selection-mode t)
+#+end_src
+
+** Fonts
+
+Set the default fixed-width and variable-width font. Note that the heights must be relatively close in size to avoid issues with line spacing in org-mode.
+
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil :font "Menlo" :height 160)
+  (set-face-attribute 'fixed-pitch nil :font "Menlo" :height 160)
+  (set-face-attribute 'variable-pitch nil :font "Cantarell" :height 180 :weight 'regular)
+#+end_src
+
+** Icons
+
+Install [[https://github.com/rainstormstudio/nerd-icons.el][nerd-icons]], an alternative to [[https://github.com/domtronn/all-the-icons.el][all-the-icons]], which has support for both the GUI and terminal.
+
+#+begin_src emacs-lisp
+  (use-package nerd-icons)
+#+end_src
+
+Note that *nerd-icons-install-fonts* must be run on a clean install. If using iTerm2, specify *Symbols Nerd Font Mono* as the non-ASCII font.
+
+** Modeline
+
+Install [[https://github.com/emacsmirror/diminish][diminish]] to hide major or minor modes from the modeline display.
+
+#+begin_src emacs-lisp
+  (use-package diminish)
+#+end_src
+
+Install custom modeline from Doom Emacs.
+
+#+begin_src emacs-lisp
+  (use-package doom-modeline
+    :init (doom-modeline-mode 1)
+    :custom (doom-modeline-height 25))
+#+end_src
+
+** Themes
+
+Install additional themes from Doom Emacs.
+
+#+begin_src emacs-lisp
+  (use-package doom-themes
+    :init (load-theme 'wombat t))
+#+end_src
+
+* Key Bindings
+
+Customize key bindings in Emacs.
+
+Bindings that use unsupported control characters will not work when running Emacs in the terminal. This is because terminal emulators only send the printable character for unsupported control characters.
+
+Note that *<tab>* refers to the tab key on the keyboard while *TAB* is the sequence *C-i*. In GUI mode Emacs can distinguish between the tab key and *C-i* if both keybindings are defined. However, both are interpreted as *C-i* in terminal mode.
+
+** Global Bindings
+
+Use *ESC* to close the current buffer or minibuffer.
+
+#+begin_src emacs-lisp
+  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+#+end_src
+
+Disable the key binding for news to prevent entries in *recentf*.
+
+#+begin_src emacs-lisp
+  (global-unset-key (kbd "C-h n"))
+#+end_src
+
+Custom key bindings for the prefix *C-c*.
+
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-c c") 'comint-clear-buffer)
+  (global-set-key (kbd "C-c r") 'revert-buffer)
+  (global-set-key (kbd "C-c d") 'delete-trailing-whitespace)
+#+end_src
+
+** Which Key
+
+Install [[https://github.com/justbur/emacs-which-key][which-key]] to automatically display possibile completions for a given prefix. The time delay is configured in seconds.
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :diminish
+    :config
+    (which-key-mode)
+    (setq which-key-idle-delay 1))
+#+end_src
+
+** Hydra
+
+Install [[https://github.com/abo-abo/hydra][Hydra]] to quickly reuse key bindings in rapid succession.
+
+#+begin_src emacs-lisp
+  (use-package hydra)
+  (elpaca-wait)
+#+end_src
+
+Increase or decrease the text scale.
+
+#+begin_src emacs-lisp
+  (defhydra hydra-scale-text (global-map "C-c t")
+    "scale-text"
+    ("j" text-scale-increase "increase")
+    ("k" text-scale-decrease "decrease")
+    ("f" nil "finished" :exit t))
+#+end_src
+
+Resize windows horizontally.
+
+#+begin_src emacs-lisp
+  (defhydra hydra-resize-border (global-map "C-c w")
+    "resize-border"
+    ("j" enlarge-window-horizontally "increase")
+    ("k" shrink-window-horizontally "decrease")
+    ("f" nil "finished" :exit t))
+#+end_src
+    
+** Evil Mode
+
+Enable [[https://github.com/emacs-evil/evil][evil-mode]] for Vim emulation. Configure the undo system to add redo support. Disable *evil-jump-forward* so *org-cycle* works with *TAB* in terminal mode.
+
+#+begin_src emacs-lisp
+  (use-package evil
+    :init
+    (setq evil-want-C-i-jump nil)
+    (evil-mode 1)
+    :config (evil-set-undo-system 'undo-redo))
+
+  (elpaca-wait)
+#+end_src
+
+Configure the terminal to default to Emacs mode. Press *C-z* to toggle Emacs mode.
+
+#+begin_src emacs-lisp
+  (dolist (mode '(term-mode
+                  eshell-mode
+                  eat-mode
+                  dashboard-mode))
+    (evil-set-initial-state mode 'emacs))
+#+end_src
+
+Use *M-/* to comment and uncomment blocks of code.
+
+#+begin_src emacs-lisp
+  (use-package evil-nerd-commenter
+    :bind ("M-/" . evilnc-comment-or-uncomment-lines))
+#+end_src
+
+* Org-Mode
+
+Configure [[https://orgmode.org/][org-mode]] for editing documents in Emacs.
+
+Note that newer versions of Emacs already include org-mode. However, you may optionally update by pulling from a package archive.
+
+** Settings
+
+Configure org-mode with the following settings.
+
+- Auto Indentation
+- Variable Width Font
+- Word Wrapping 
+- Custom Collapsed Headings
+- Hide Emphasis Markers
+  
+#+begin_src emacs-lisp
+  (defun srashid3/org-mode-setup ()
+    (org-indent-mode)
+    (variable-pitch-mode 1)
+    (visual-line-mode 1))
+
+  (use-package org
+    :elpaca nil
+    :hook (org-mode . srashid3/org-mode-setup)
+    :config
+    (set-face-underline 'org-ellipsis nil)
+    :custom
+    (org-ellipsis " ▾")
+    (org-startup-folded t)
+    (org-hide-emphasis-markers t))
+#+end_src
+
+** Bullets
+
+Customize unordered lists with [[https://github.com/sabof/org-bullets][org-bullets]].
+
+#+begin_src emacs-lisp
+  (use-package org-bullets
+    :after org
+    :hook (org-mode . org-bullets-mode)
+    :custom (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+#+end_src
+
+** Visual Column
+
+Visually center text with [[https://github.com/joostkremers/visual-fill-column][visual-fill-column]].
+
+#+begin_src emacs-lisp
+  (defun srashid3/org-mode-visual-column ()
+    (setq visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
+
+  (use-package visual-fill-column
+    :hook (org-mode . srashid3/org-mode-visual-column))
+#+end_src
+
+** Auto-Tangle
+
+Automatically tangle files on save with [[https://github.com/yilkalargaw/org-auto-tangle][org-auto-tangle]]. Note that files are tangled asynchronously.
+
+#+begin_src emacs-lisp
+  (use-package org-auto-tangle
+    :defer t
+    :hook (org-mode . org-auto-tangle-mode))
+#+end_src
+
+** Spell Check
+
+Emacs exposes commands for spell checking with the built in [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Spelling.html][ispell]] package. For automatic spell checking and highlighting enable *flyspell-mode*.
+
+Note that these commands only work if one of the following are installed on your system.
+
+- Ispell
+- Aspell
+- Hunspell
+- Enchant
+
+Custom hook that enables *flyspell-mode* by default in org-mode buffers. Can optionally be disabled by using the flyspell keyword.
+
+#+begin_src emacs-lisp
+  (defun srashid3/org-flyspell-hook ()
+    (let* ((flyspell-key (org-collect-keywords '("FLYSPELL")))
+           (flyspell-val (car (last (car flyspell-key)))))
+      (unless (and flyspell-key (not (intern flyspell-val)))
+        (flyspell-mode 1))))
+#+end_src
+
+Configure [[http://aspell.net/][Aspell]] as the default spell checker.
+
+#+begin_src emacs-lisp
+  (use-package flyspell
+    :elpaca nil
+    :hook (org-mode . srashid3/org-flyspell-hook)
+    :custom (setq ispell-program-name "aspell"))
+#+end_src
+
+Add Ivy support with [[https://github.com/d12frosted/flyspell-correct][flyspell-correct]]. Rebind *flyspell-auto-correct-word* to *flyspell-correct-wrapper*.
+
+#+begin_src emacs-lisp
+  (use-package flyspell-correct
+    :after flyspell
+    :bind (:map flyspell-mode-map
+           ("M-TAB" . flyspell-correct-wrapper)))
+
+  (use-package flyspell-correct-ivy
+    :after flyspell-correct)
+#+end_src
+
+** Babel
+
+Execute source code with [[https://orgmode.org/worg/org-contrib/babel/][Babel]]. Refer to the documentation for a complete list of supported languages.
+
+#+begin_src emacs-lisp
+  (org-babel-do-load-languages
+  'org-babel-load-languages
+  '((emacs-lisp . t)
+    (shell . t)
+    (python . t)))
+#+end_src
+
+** Structure Templates
+
+Quickly generate empty structural blocks with [[https://orgmode.org/manual/Structure-Templates.html][org-tempo]].
+
+#+begin_src emacs-lisp
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
+#+end_src
+
+* Development Environment
+
+Configure the development environment within Emacs.
+
+** Terminal
+
+The following modes provide terminal emulation.
+
+- term
+- ansi-term
+- vterm
+- eat
+
+[[https://codeberg.org/akib/emacs-eat/][Eat]] is an alternative Emacs Lisp terminal emulator, providing significant improvements over *term* without the external dependencies of *vterm*. Eat also integrates with Eshell, enabling support for full screen terminal applications.
+
+Note that *eat-compile-terminfo* must be run on a clean install.
+
+#+begin_src emacs-lisp
+  (use-package eat
+    :hook (eshell-mode . eat-eshell-mode))
+#+end_src
+
+** Shell
+
+[[https://www.gnu.org/software/emacs/manual/html_mono/eshell.html][Eshell]] is a command interpreter that provides an interface similar to Bash or Zsh. Unlike *shell-mode*, Eshell does not invoke an external process and is implemented natively in Elisp.
+
+Define aliases for *eshell-mode*.
+
+#+begin_src emacs-lisp
+  (defun srashid3/eshell-aliases ()
+    (eshell/alias "clear" "clear 1")
+    (eshell/alias "venv" "python3 -m venv venv")
+    (eshell/alias "activate" "pyvenv-activate venv")
+    (eshell/alias "deactivate" "pyvenv-deactivate"))
+#+end_src
+
+Rebind *C-r* to the Counsel command history. Note that the *eshell-mode-map* is defined as part of *esh-mode*.
+
+Allow Eshell to modify to the global environment. This makes it easier to reload the *PATH* without restarting the buffer.
+
+#+begin_src emacs-lisp
+  (use-package eshell
+    :elpaca nil
+    :after esh-mode
+    :bind (:map eshell-mode-map
+           ("C-r" . counsel-esh-history))
+    :hook (eshell-mode . srashid3/eshell-aliases)
+    :custom
+    (eshell-hist-ignoredups t)
+    (eshell-modify-global-environment t)
+    (eshell-bad-command-tolerance 100))
+#+end_src
+
+Define hook for reloading the *PATH* within Eshell.
+
+#+begin_src emacs-lisp
+  (defun srashid3/eshell-reload-path ()
+    (setq eshell-path-env (mapconcat 'identity exec-path ":")))
+#+end_src
+
+** Code Completion
+
+Install [[http://company-mode.github.io/][company-mode]] for code completion. Set the idle delay to zero for instant completions. Complete the current selection with *TAB*.
+
+#+begin_src emacs-lisp
+  (use-package company
+    :after lsp-mode
+    :hook (lsp-mode . company-mode)
+    :bind (:map company-active-map
+           ("<tab>" . company-complete-selection)
+           :map lsp-mode-map
+           ("<tab>" . company-indent-or-complete-common))
+    :custom
+    (company-idle-delay 0)
+    (company-minimum-prefix-length 1))
+#+end_src
+
+Enhance the interface with [[https://github.com/sebastiencs/company-box][company-box]]. Adds additional styling and icons for different backends.
+
+#+begin_src emacs-lisp
+  (use-package company-box
+    :hook (company-mode . company-box-mode))
+#+end_src
+
+** Language Server
+
+Add support for language servers with [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]. Defer loading until *lsp* or *lsp-deferred* is invoked within the buffer.
+
+#+begin_src emacs-lisp
+  (use-package lsp-mode
+    :commands (lsp lsp-deferred)
+    :custom
+    (lsp-keymap-prefix "C-c l")
+    (lsp-headerline-breadcrumb-icons-enable nil)    
+    :config
+    (lsp-enable-which-key-integration t))
+#+end_src
+
+Add additional UI enchancements with [[https://github.com/emacs-lsp/lsp-ui][lsp-ui]]. By default lsp-mode activates lsp-ui unless configured otherwise.
+
+#+begin_src emacs-lisp
+  (use-package lsp-ui)
+#+end_src
+
+Add additional Ivy interfaces with [[https://github.com/emacs-lsp/lsp-ivy][lsp-ivy]].
+
+#+begin_src emacs-lisp
+  (use-package lsp-ivy
+    :after lsp)
+#+end_src
+
+** C
+
+Configure language server for C. Note that *clangd* must be manually installed.
+
+#+begin_src emacs-lisp
+  (use-package c-mode
+    :elpaca nil
+    :hook (c-mode . lsp-deferred))
+#+end_src
+
+Set the default style and offset for indentation.
+
+#+begin_src emacs-lisp
+  (setq-default c-default-style "linux" c-basic-offset 4)
+#+end_src
+
+** Python
+
+Configure language server for Python. Note that *pylsp* must be manually installed.
+
+#+begin_src emacs-lisp
+  (use-package python-mode
+    :hook (python-mode . lsp-deferred))
+#+end_src
+
+Install [[https://github.com/jorgenschaefer/pyvenv][pyvenv]] for virtual environment support.
+
+#+begin_src emacs-lisp
+  (use-package pyvenv
+    :init (pyvenv-mode 1))
+#+end_src
+
+Reload *PATH* in Eshell after activating or deactivating virtual environment.
+
+#+begin_src emacs-lisp
+  (add-hook 'pyvenv-post-activate-hooks 'srashid3/eshell-reload-path)
+  (add-hook 'pyvenv-post-deactivate-hooks 'srashid3/eshell-reload-path)
+#+end_src
