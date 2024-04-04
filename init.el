@@ -2,17 +2,14 @@
 
 (setq custom-file (concat user-emacs-directory "custom.el"))
 
-(defvar elpaca-installer-version 0.6)
-
+(defvar elpaca-installer-version 0.7)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
 (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
-
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-			      :ref nil
-			      :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-			      :build (:not elpaca--activate-package)))
-
+                              :ref nil :depth 1
+                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                              :build (:not elpaca--activate-package)))
 (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
        (build (expand-file-name "elpaca/" elpaca-builds-directory))
        (order (cdr elpaca-order))
@@ -22,24 +19,25 @@
     (make-directory repo t)
     (when (< emacs-major-version 28) (require 'subr-x))
     (condition-case-unless-debug err
-	(if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-		 ((zerop (call-process "git" nil buffer t "clone"
-				       (plist-get order :repo) repo)))
-		 ((zerop (call-process "git" nil buffer t "checkout"
-				       (or (plist-get order :ref) "--"))))
-		 (emacs (concat invocation-directory invocation-name))
-		 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-				       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-		 ((require 'elpaca))
-		 ((elpaca-generate-autoloads "elpaca" repo)))
-	    (progn (message "%s" (buffer-string)) (kill-buffer buffer))
-	  (error "%s" (with-current-buffer buffer (buffer-string))))
+        (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                 ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                 ,@(when-let ((depth (plist-get order :depth)))
+                                                     (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                 ,(plist-get order :repo) ,repo))))
+                 ((zerop (call-process "git" nil buffer t "checkout"
+                                       (or (plist-get order :ref) "--"))))
+                 (emacs (concat invocation-directory invocation-name))
+                 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                 ((require 'elpaca))
+                 ((elpaca-generate-autoloads "elpaca" repo)))
+            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+          (error "%s" (with-current-buffer buffer (buffer-string))))
       ((error) (warn "%s" err) (delete-directory repo 'recursive))))
   (unless (require 'elpaca-autoloads nil t)
     (require 'elpaca)
     (elpaca-generate-autoloads "elpaca" repo)
     (load "./elpaca-autoloads")))
-
 (add-hook 'after-init-hook #'elpaca-process-queues)
 (elpaca `(,@elpaca-order))
 
@@ -88,23 +86,12 @@
 
 (use-package magit)
 
+(use-package transient)
+
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (tooltip-mode -1)
-
-(use-package dashboard
-  :config
-  (add-hook 'elpaca-after-init-hook #'dashboard-insert-startupify-lists)
-  (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
-  (dashboard-setup-startup-hook)
-  :custom
-  (dashboard-startup-banner 'logo)
-  (dashboard-center-content t)
-  (dashboard-set-footer nil)
-  (dashboard-items '((recents . 5)
-                     (projects . 5)
-                     (bookmarks . 5))))
 
 (column-number-mode)
 
@@ -130,8 +117,32 @@
   :init (doom-modeline-mode 1)
   :custom (doom-modeline-height 25))
 
+(use-package shrink-path
+  :ensure (:host github :repo "https://github.com/zbelial/shrink-path.el"))
+
 (use-package doom-themes
   :init (load-theme 'wombat t))
+
+(use-package dashboard
+  :config
+  (add-hook 'elpaca-after-init-hook #'dashboard-insert-startupify-lists)
+  (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
+  (dashboard-setup-startup-hook)
+  :custom
+  (dashboard-startup-banner 'logo)
+  (dashboard-center-content t)
+  (dashboard-display-icons-p t)
+  (dashboard-icon-type 'nerd-icons)
+  (dashboard-set-file-icons t)
+  (dashboard-startupify-list '(dashboard-insert-banner
+                               dashboard-insert-newline
+                               dashboard-insert-banner-title
+                               dashboard-insert-newline
+                               dashboard-insert-init-info
+                               dashboard-insert-items))
+  (dashboard-items '((recents . 5)
+                     (projects . 5)
+                     (bookmarks . 5))))
 
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
@@ -185,7 +196,7 @@
   (visual-line-mode 1))
 
 (use-package org
-  :elpaca nil
+  :ensure nil
   :hook (org-mode . srashid3/org-mode-setup)
   :config
   (set-face-underline 'org-ellipsis nil)
@@ -204,6 +215,7 @@
   (visual-fill-column-mode 1))
 
 (use-package visual-fill-column
+  :ensure (:host github :repo "https://github.com/joostkremers/visual-fill-column")
   :hook (org-mode . srashid3/org-mode-visual-column))
 
 (use-package org-auto-tangle
@@ -217,7 +229,7 @@
       (flyspell-mode 1))))
 
 (use-package flyspell
-  :elpaca nil
+  :ensure nil
   :hook (org-mode . srashid3/org-flyspell-hook)
   :custom (setq ispell-program-name "aspell"))
 
@@ -241,6 +253,7 @@
 (add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
 
 (use-package eat
+  :ensure (:host github :repo "https://github.com/kephale/emacs-eat")
   :hook (eshell-mode . eat-eshell-mode))
 
 (defun srashid3/eshell-aliases ()
@@ -250,7 +263,7 @@
   (eshell/alias "deactivate" "pyvenv-deactivate"))
 
 (use-package eshell
-  :elpaca nil
+  :ensure nil
   :after esh-mode
   :bind (:map eshell-mode-map
          ("C-r" . counsel-esh-history))
@@ -291,12 +304,13 @@
   :after lsp)
 
 (use-package c-mode
-  :elpaca nil
+  :ensure nil
   :hook (c-mode . lsp-deferred))
 
 (setq-default c-default-style "linux" c-basic-offset 4)
 
 (use-package python-mode
+  :ensure (:host github :repo "https://github.com/emacsmirror/python-mode")
   :hook (python-mode . lsp-deferred))
 
 (use-package pyvenv

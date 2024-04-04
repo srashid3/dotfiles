@@ -1,4 +1,5 @@
 #+title: Emacs Configuration
+#+date: April 4, 2024
 #+property: header-args:emacs-lisp :results silent :tangle ~/.emacs.d/init.el
 #+auto_tangle: t
 #+flyspell: nil
@@ -7,24 +8,29 @@
 
 Initial setup for a clean install of Emacs.
 
-1) Disable the default package management system in *early-init.el.*
+** Emacs
+
+Disable the default package management system in *early-init.el*.
 
 #+begin_src emacs-lisp :tangle no
   (setq package-enable-at-startup nil)
 #+end_src
 
-2) Initialize various packages.
+Run prerequisite commands for various packages.
 
 #+begin_src emacs-lisp :tangle no
   (eat-compile-term-info)
   (nerd-icons-install-fonts)
 #+end_src
 
-3) Install external dependencies.
+** System
 
-- aspell
-- clangd
-- pylsp
+Install required dependencies on the system.
+
+#+begin_src shell
+brew install aspell llvm
+pip install python-lsp-server
+#+end_src
 
 * Cross-Platform Support
 
@@ -105,46 +111,44 @@ The built-in package manager for Emacs is *package.el*. By default, Emacs uses [
 The following will clone and configure Elpaca in the user's Emacs directory.
 
 #+begin_src emacs-lisp
-  (defvar elpaca-installer-version 0.6)
-
-  (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
-  (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-  (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
-
-  (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-				:ref nil
-				:files (:defaults "elpaca-test.el" (:exclude "extensions"))
-				:build (:not elpaca--activate-package)))
-
-  (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
-	 (build (expand-file-name "elpaca/" elpaca-builds-directory))
-	 (order (cdr elpaca-order))
-	 (default-directory repo))
-    (add-to-list 'load-path (if (file-exists-p build) build repo))
-    (unless (file-exists-p repo)
-      (make-directory repo t)
-      (when (< emacs-major-version 28) (require 'subr-x))
-      (condition-case-unless-debug err
-	  (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-		   ((zerop (call-process "git" nil buffer t "clone"
-					 (plist-get order :repo) repo)))
-		   ((zerop (call-process "git" nil buffer t "checkout"
-					 (or (plist-get order :ref) "--"))))
-		   (emacs (concat invocation-directory invocation-name))
-		   ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-					 "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-		   ((require 'elpaca))
-		   ((elpaca-generate-autoloads "elpaca" repo)))
-	      (progn (message "%s" (buffer-string)) (kill-buffer buffer))
-	    (error "%s" (with-current-buffer buffer (buffer-string))))
-	((error) (warn "%s" err) (delete-directory repo 'recursive))))
-    (unless (require 'elpaca-autoloads nil t)
-      (require 'elpaca)
-      (elpaca-generate-autoloads "elpaca" repo)
-      (load "./elpaca-autoloads")))
-  
-  (add-hook 'after-init-hook #'elpaca-process-queues)
-  (elpaca `(,@elpaca-order))
+(defvar elpaca-installer-version 0.7)
+(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                              :ref nil :depth 1
+                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                              :build (:not elpaca--activate-package)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+       (build (expand-file-name "elpaca/" elpaca-builds-directory))
+       (order (cdr elpaca-order))
+       (default-directory repo))
+  (add-to-list 'load-path (if (file-exists-p build) build repo))
+  (unless (file-exists-p repo)
+    (make-directory repo t)
+    (when (< emacs-major-version 28) (require 'subr-x))
+    (condition-case-unless-debug err
+        (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                 ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                 ,@(when-let ((depth (plist-get order :depth)))
+                                                     (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                 ,(plist-get order :repo) ,repo))))
+                 ((zerop (call-process "git" nil buffer t "checkout"
+                                       (or (plist-get order :ref) "--"))))
+                 (emacs (concat invocation-directory invocation-name))
+                 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                 ((require 'elpaca))
+                 ((elpaca-generate-autoloads "elpaca" repo)))
+            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+          (error "%s" (with-current-buffer buffer (buffer-string))))
+      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
+  (unless (require 'elpaca-autoloads nil t)
+    (require 'elpaca)
+    (elpaca-generate-autoloads "elpaca" repo)
+    (load "./elpaca-autoloads")))
+(add-hook 'after-init-hook #'elpaca-process-queues)
+(elpaca `(,@elpaca-order))
 #+end_src
 
 Note that Elpaca requires the default package manager to be disabled. Add the following configuration to *early-init.el*.
@@ -153,7 +157,7 @@ Note that Elpaca requires the default package manager to be disabled. Add the fo
   (setq package-enable-at-startup nil)
 #+end_src
 
-Elpaca will first read the entire init file and then process its package queues. Each order is automatically placed in a queue. Use *elpaca-wait* to block the current queue and place proceeding orders in a new queue. For built-in packages, use *elpaca nil* to avoid installing anything.
+Elpaca will first read the entire init file and then process its package queues. Each order is automatically placed in a queue. Use *elpaca-wait* to block the current queue and place proceeding orders in a new queue. For built-in packages, disable *ensure* to avoid installing anything.
 
 ** Use Package
 
@@ -275,6 +279,12 @@ Install [[https://github.com/ericdanan/counsel-projectile][counsel-projectile]] 
   (use-package magit)
 #+end_src
 
+Explicitly install [[https://github.com/magit/transient][Transient]] as a required dependency for Magit.
+
+#+begin_src emacs-lisp
+  (use-package transient)
+#+end_src
+
 * User Interface
 
 Customize the Emacs user interface.
@@ -288,25 +298,6 @@ Disable unused elements in GUI mode such as menu and scroll bars.
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
   (tooltip-mode -1)
-#+end_src
-
-** Dashboard
-
-Replace the default startup message with [[https://github.com/emacs-dashboard/emacs-dashboard][emacs-dashboard]].
-
-#+begin_src emacs-lisp
-  (use-package dashboard
-    :config
-    (add-hook 'elpaca-after-init-hook #'dashboard-insert-startupify-lists)
-    (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
-    (dashboard-setup-startup-hook)
-    :custom
-    (dashboard-startup-banner 'logo)
-    (dashboard-center-content t)
-    (dashboard-set-footer nil)
-    (dashboard-items '((recents . 5)
-                       (projects . 5)
-                       (bookmarks . 5))))
 #+end_src
 
 ** Cursor Postion
@@ -375,6 +366,13 @@ Install custom modeline from Doom Emacs.
     :custom (doom-modeline-height 25))
 #+end_src
 
+Explicitly install [[https://github.com/zbelial/shrink-path.el][shrink-path]] as a required dependency for doom-modeline.
+
+#+begin_src emacs-lisp
+  (use-package shrink-path
+    :ensure (:host github :repo "https://github.com/zbelial/shrink-path.el"))
+#+end_src
+
 ** Themes
 
 Install additional themes from Doom Emacs.
@@ -382,6 +380,33 @@ Install additional themes from Doom Emacs.
 #+begin_src emacs-lisp
   (use-package doom-themes
     :init (load-theme 'wombat t))
+#+end_src
+
+** Dashboard
+
+Replace the default startup message with [[https://github.com/emacs-dashboard/emacs-dashboard][emacs-dashboard]].
+
+#+begin_src emacs-lisp
+  (use-package dashboard
+    :config
+    (add-hook 'elpaca-after-init-hook #'dashboard-insert-startupify-lists)
+    (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
+    (dashboard-setup-startup-hook)
+    :custom
+    (dashboard-startup-banner 'logo)
+    (dashboard-center-content t)
+    (dashboard-display-icons-p t)
+    (dashboard-icon-type 'nerd-icons)
+    (dashboard-set-file-icons t)
+    (dashboard-startupify-list '(dashboard-insert-banner
+                                 dashboard-insert-newline
+                                 dashboard-insert-banner-title
+                                 dashboard-insert-newline
+                                 dashboard-insert-init-info
+                                 dashboard-insert-items))
+    (dashboard-items '((recents . 5)
+                       (projects . 5)
+                       (bookmarks . 5))))
 #+end_src
 
 * Key Bindings
@@ -509,7 +534,7 @@ Configure org-mode with the following settings.
     (visual-line-mode 1))
 
   (use-package org
-    :elpaca nil
+    :ensure nil
     :hook (org-mode . srashid3/org-mode-setup)
     :config
     (set-face-underline 'org-ellipsis nil)
@@ -540,6 +565,7 @@ Visually center text with [[https://github.com/joostkremers/visual-fill-column][
     (visual-fill-column-mode 1))
 
   (use-package visual-fill-column
+    :ensure (:host github :repo "https://github.com/joostkremers/visual-fill-column")
     :hook (org-mode . srashid3/org-mode-visual-column))
 #+end_src
 
@@ -578,7 +604,7 @@ Configure [[http://aspell.net/][Aspell]] as the default spell checker.
 
 #+begin_src emacs-lisp
   (use-package flyspell
-    :elpaca nil
+    :ensure nil
     :hook (org-mode . srashid3/org-flyspell-hook)
     :custom (setq ispell-program-name "aspell"))
 #+end_src
@@ -637,6 +663,7 @@ Note that *eat-compile-terminfo* must be run on a clean install.
 
 #+begin_src emacs-lisp
   (use-package eat
+    :ensure (:host github :repo "https://github.com/kephale/emacs-eat")
     :hook (eshell-mode . eat-eshell-mode))
 #+end_src
 
@@ -660,7 +687,7 @@ Allow Eshell to modify to the global environment. This makes it easier to reload
 
 #+begin_src emacs-lisp
   (use-package eshell
-    :elpaca nil
+    :ensure nil
     :after esh-mode
     :bind (:map eshell-mode-map
            ("C-r" . counsel-esh-history))
@@ -735,7 +762,7 @@ Configure language server for C. Note that *clangd* must be manually installed.
 
 #+begin_src emacs-lisp
   (use-package c-mode
-    :elpaca nil
+    :ensure nil
     :hook (c-mode . lsp-deferred))
 #+end_src
 
@@ -751,6 +778,7 @@ Configure language server for Python. Note that *pylsp* must be manually install
 
 #+begin_src emacs-lisp
   (use-package python-mode
+    :ensure (:host github :repo "https://github.com/emacsmirror/python-mode")
     :hook (python-mode . lsp-deferred))
 #+end_src
 
