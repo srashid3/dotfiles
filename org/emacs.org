@@ -28,8 +28,8 @@ Run prerequisite commands for various packages.
 Install required dependencies on the system.
 
 #+begin_src shell
-brew install aspell llvm
-pip install python-lsp-server
+$ brew install aspell llvm
+$ pip install python-lsp-server
 #+end_src
 
 * Cross-Platform Support
@@ -41,14 +41,14 @@ Emacs support on different operating systems.
 [[https://github.com/d12frosted/homebrew-emacs-plus][Emacs Plus]] provides GNU Emacs with macOS specific patches. To install with Homebrew, run the following commands.
 
 #+begin_src shell
-brew tap d12frosted/emacs-plus
-brew install emacs-plus
+$ brew tap d12frosted/emacs-plus
+$ brew install emacs-plus
 #+end_src
 
 For a potential performance boost, consider installing *gccemacs* with the flag below. Refer to the documentation on [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Byte-Compilation.html][byte]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Native-Compilation.html][native]] compilation.
 
 #+begin_src shell
-brew install emacs-plus --with-native-comp
+$ brew install emacs-plus --with-native-comp
 #+end_src
 
 To add Emacs to *Applications*, create a symbolic link.
@@ -62,16 +62,16 @@ $ ln -s /opt/homebrew/opt/emacs-plus/Emacs.app /Applications
 Download GNU Emacs using the package manager for your distribution. For Debian based systems, run the following command.
 
 #+begin_src shell
-sudo apt install emacs 
+$ sudo apt install emacs
 #+end_src
 
 Alternatively, you can build Emacs from source. Download the tarball from the [[https://ftp.gnu.org/gnu/emacs/][GNU FTP Server]] and run the following commands.
 
 #+begin_src shell
-mkdir build && cd build
-cd ../configure
-make
-sudo make install
+$ mkdir build && cd build
+$ cd ../configure
+$ make
+$ sudo make install
 #+end_src
 
 ** Windows
@@ -332,12 +332,26 @@ By default, Emacs will append to the end of selected text. Enable *delete-select
 
 ** Fonts
 
-Set the default fixed-width and variable-width font. Note that the heights must be relatively close in size to avoid issues with line spacing in org-mode.
+Set the font height.
 
 #+begin_src emacs-lisp
-  (set-face-attribute 'default nil :font "Menlo" :height 160)
-  (set-face-attribute 'fixed-pitch nil :font "Menlo" :height 160)
-  (set-face-attribute 'variable-pitch nil :font "Cantarell" :height 180 :weight 'regular)
+  (setq srashid3/font-height 180)
+#+end_src
+
+Configure the fonts used by standard faces. Note that the heights must be relatively close in size to avoid issues with line spacing in org-mode.
+
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil :font "Menlo" :height srashid3/font-height)
+  (set-face-attribute 'fixed-pitch nil :font "Menlo" :height srashid3/font-height)
+  (set-face-attribute 'variable-pitch nil :font "Cantarell" :height srashid3/font-height :weight 'regular)
+#+end_src
+
+Use [[https://github.com/emacsmirror/mixed-pitch][mixed-pitch]] to automatically handle fixed-pitch and variable-pitch fonts.
+
+#+begin_src emacs-lisp
+  (use-package mixed-pitch
+    :hook
+    (text-mode . mixed-pitch-mode))
 #+end_src
 
 ** Icons
@@ -702,7 +716,7 @@ Define hook for reloading the *PATH* within Eshell.
 
 #+begin_src emacs-lisp
   (defun srashid3/eshell-reload-path ()
-    (setq eshell-path-env (mapconcat 'identity exec-path ":")))
+    (eshell-set-path (mapconcat 'identity exec-path ":")))
 #+end_src
 
 ** Code Completion

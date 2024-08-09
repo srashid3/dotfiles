@@ -105,9 +105,15 @@
 
 (delete-selection-mode t)
 
-(set-face-attribute 'default nil :font "Menlo" :height 160)
-(set-face-attribute 'fixed-pitch nil :font "Menlo" :height 160)
-(set-face-attribute 'variable-pitch nil :font "Cantarell" :height 180 :weight 'regular)
+(setq srashid3/font-height 180)
+
+(set-face-attribute 'default nil :font "Menlo" :height srashid3/font-height)
+(set-face-attribute 'fixed-pitch nil :font "Menlo" :height srashid3/font-height)
+(set-face-attribute 'variable-pitch nil :font "Cantarell" :height srashid3/font-height :weight 'regular)
+
+(use-package mixed-pitch
+  :hook
+  (text-mode . mixed-pitch-mode))
 
 (use-package nerd-icons)
 
@@ -274,7 +280,7 @@
   (eshell-bad-command-tolerance 100))
 
 (defun srashid3/eshell-reload-path ()
-  (setq eshell-path-env (mapconcat 'identity exec-path ":")))
+  (eshell-set-path (mapconcat 'identity exec-path ":")))
 
 (use-package company
   :after lsp-mode
