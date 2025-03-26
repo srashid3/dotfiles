@@ -27,8 +27,9 @@ export NVM_DIR="$HOME/.nvm"
 alias pls="sudo !!"
 alias emacs="emacs -nw"
 
+alias python="python3"
 alias pip="pip3"
-alias venv="python3 -m venv venv"
+alias venv="python -m venv venv"
 alias activate="ls venv > /dev/null 2>&1 && source venv/bin/activate"
 
 alias mongo="docker exec -it mongod mongo"
