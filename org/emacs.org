@@ -36,6 +36,8 @@ $ pip install python-lsp-server
 
 Emacs support on different operating systems.
 
+Note that as of Emacs 30, native compilation is enabled by default. For more information, refer to the documentation on [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Byte-Compilation.html][byte]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Native-Compilation.html][native]] compilation.
+
 ** macOS
 
 [[https://github.com/d12frosted/homebrew-emacs-plus][Emacs Plus]] provides GNU Emacs with macOS specific patches. To install with Homebrew, run the following commands.
@@ -45,10 +47,10 @@ $ brew tap d12frosted/emacs-plus
 $ brew install emacs-plus
 #+end_src
 
-For a potential performance boost, consider installing *gccemacs* with the flag below. Refer to the documentation on [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Byte-Compilation.html][byte]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Native-Compilation.html][native]] compilation.
+For older versions of Emacs, use the flag below to enable native compilation.
 
 #+begin_src shell
-$ brew install emacs-plus --with-native-comp
+$ brew install emacs-plus@29 --with-native-comp
 #+end_src
 
 To add Emacs to *Applications*, create a symbolic link.
@@ -111,12 +113,12 @@ The built-in package manager for Emacs is *package.el*. By default, Emacs uses [
 The following will clone and configure Elpaca in the user's Emacs directory.
 
 #+begin_src emacs-lisp
-(defvar elpaca-installer-version 0.7)
+(defvar elpaca-installer-version 0.11)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
 (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-                              :ref nil :depth 1
+                              :ref nil :depth 1 :inherit ignore
                               :files (:defaults "elpaca-test.el" (:exclude "extensions"))
                               :build (:not elpaca--activate-package)))
 (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
@@ -126,27 +128,27 @@ The following will clone and configure Elpaca in the user's Emacs directory.
   (add-to-list 'load-path (if (file-exists-p build) build repo))
   (unless (file-exists-p repo)
     (make-directory repo t)
-    (when (< emacs-major-version 28) (require 'subr-x))
+    (when (<= emacs-major-version 28) (require 'subr-x))
     (condition-case-unless-debug err
-        (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-                 ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
-                                                 ,@(when-let ((depth (plist-get order :depth)))
-                                                     (list (format "--depth=%d" depth) "--no-single-branch"))
-                                                 ,(plist-get order :repo) ,repo))))
-                 ((zerop (call-process "git" nil buffer t "checkout"
-                                       (or (plist-get order :ref) "--"))))
-                 (emacs (concat invocation-directory invocation-name))
-                 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-                                       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-                 ((require 'elpaca))
-                 ((elpaca-generate-autoloads "elpaca" repo)))
+        (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                  ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                  ,@(when-let* ((depth (plist-get order :depth)))
+                                                      (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                  ,(plist-get order :repo) ,repo))))
+                  ((zerop (call-process "git" nil buffer t "checkout"
+                                        (or (plist-get order :ref) "--"))))
+                  (emacs (concat invocation-directory invocation-name))
+                  ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                        "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                  ((require 'elpaca))
+                  ((elpaca-generate-autoloads "elpaca" repo)))
             (progn (message "%s" (buffer-string)) (kill-buffer buffer))
           (error "%s" (with-current-buffer buffer (buffer-string))))
       ((error) (warn "%s" err) (delete-directory repo 'recursive))))
   (unless (require 'elpaca-autoloads nil t)
     (require 'elpaca)
     (elpaca-generate-autoloads "elpaca" repo)
-    (load "./elpaca-autoloads")))
+    (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
 (add-hook 'after-init-hook #'elpaca-process-queues)
 (elpaca `(,@elpaca-order))
 #+end_src
@@ -161,7 +163,7 @@ Elpaca will first read the entire init file and then process its package queues.
 
 ** Use Package
 
-As of Emacs >= 29, the [[https://github.com/jwiegley/use-package][use-package]] macro is already built-in. Enable Elpaca support for use-package.
+As of Emacs 29, [[https://github.com/jwiegley/use-package][use-package]] is a built-in macro. Enable Elpaca support for use-package.
 
 #+begin_src emacs-lisp
   (elpaca elpaca-use-package
@@ -181,12 +183,27 @@ Note that *use-package-always-ensure* is specific to *package.el* and should not
 
   (setq use-package-always-ensure t)
 #+end_src
+* Environment Variables
 
-* Minibuffer Completion
+Configure environment variables for Emacs.
 
-Customize minibuffer completion in Emacs.
+Install [[https://github.com/purcell/exec-path-from-shell][exec-path-from-shell]] to use the same environment variables as the user shell. This ensures consistent behavior in both the terminal and Emacs.
 
-Emacs originally introduced minibuffer completion with the addition of *completing-read*. Since then, various improvements have been added to the default completer. Some noteable features include:
+#+begin_src emacs-lisp
+(use-package exec-path-from-shell
+  :if (memq window-system '(mac ns x))
+  :config
+  (setq exec-path-from-shell-variables '("PATH"))
+  (exec-path-from-shell-initialize))
+#+end_src
+
+* Completion System
+
+Customize the completion system for Emacs.
+
+Emacs originally introduced completion with the addition of *completing-read*. Due to limited functionality, third-party completion frameworks such as *Ivy* and *Helm* were developed.
+
+Since then, there have been various improvements to the default completion system. Some noteable features include:
 
 - Catergory aware completion
 - Cycling through completion candidates
@@ -194,56 +211,102 @@ Emacs originally introduced minibuffer completion with the addition of *completi
 - Incremental completion (*icomplete-mode*)
 - Vertical completion (*icomplete-vertical-mode*)
 
-Note that older completion frameworks, such as *IDO*, required patches to work with Emacs. However, packages can now hook into Emacs natively with *completing-read-function*.
+Emacs has also made it easier for modern packages to hook into its built-in facilities with *completing-read-function*.
 
-** Ivy
+** Vertico
 
-[[https://github.com/abo-abo/swiper][Ivy]] is a generic completion mechanism for Emacs. By itself, Ivy only replaces all *completing-read-function* calls with *ivy-completing-read-function*.
-
-Configure Ivy with virtual buffers to track recent files and bookmarks. Ignore diagnostic buffers such as the logs created by lsp-mode. Toggle the visibility of ignored buffers with *C-c C-a*.
+[[https://github.com/minad/vertico][Vertico]] is a minimalistic vertical completion UI. Since Vertico is based on the default completion system, it is very fast and extensible.
 
 #+begin_src emacs-lisp
-  (use-package ivy
-    :diminish
-    :init (ivy-mode 1)
-    :config
-    (add-to-list 'ivy-ignore-buffers "\\*.*log*.*\\*")
-    (add-to-list 'ivy-ignore-buffers "\\*.*lsp*.*\\*")
-    (add-to-list 'ivy-ignore-buffers "\\*.*clangd*.*\\*")
-    (add-to-list 'ivy-ignore-buffers "\\*Messages\\*")
-    :custom
-    (ivy-use-virtual-buffers t)
-    (ivy-count-format "%d/%d "))
+(use-package vertico
+  :custom
+  (vertico-resize t)
+  (vertico-cycle t)
+  :init (vertico-mode))
 #+end_src
 
-Install [[https://github.com/Yevgnen/ivy-rich][ivy-rich]] to provide additional detail for variables and functions.
+** Orderless
+
+[[https://github.com/oantolin/orderless][Orderless]] is a completion style that can match multiple patterns in any order.
+
+The *basic* and *partial-completion* style are required as fallbacks to ensure support with dynamic completion tables and wildcards.
 
 #+begin_src emacs-lisp
-  (use-package ivy-rich
-     :after counsel
-     :init (ivy-rich-mode 1))
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion)))))
 #+end_src
 
-** Counsel
+** Marginalia
 
-Counsel provides improved integration with Ivy for common Emacs functions. Enable *counsel-mode* to remap all built-in Emacs functions their Counsel equivalent.
+[[https://github.com/minad/marginalia][Marginalia]] provides annotations for completion alternatives within the minibuffer.
+
+Use *marginalia-cycle* to change how much detail is shown.
 
 #+begin_src emacs-lisp
-  (use-package counsel
-    :bind (("M-x" . counsel-M-x)
-           ("C-x b" . counsel-switch-buffer)
-           ("C-x C-f" . counsel-find-file)
-           ("C-h f" . counsel-describe-function)
-           ("C-h v" . counsel-describe-variable)))
+(use-package marginalia
+  :bind (:map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
+  :init
+  (marginalia-mode))
 #+end_src
 
-** Swiper
+** Consult
 
-Swiper is an alternative to *isearch* that uses Ivy to display matches.
+[[https://github.com/minad/consult][Consult]] provides enhanced commands for search and navigation.
 
 #+begin_src emacs-lisp
-  (use-package swiper
-    :bind (("C-s" . 'swiper)))
+(use-package consult
+  :bind (("C-s" . consult-line)
+         ("C-S-s" . consult-line-multi)
+         ("C-x b" . consult-buffer)
+         ("M-g g" . consult-goto-line)
+         ("M-g M-g" . consult-goto-line))
+  :config
+  (setq consult-goto-line-numbers nil))
+#+end_src
+
+** Embark
+
+[[https://github.com/oantolin/embark][Embark]] provides contextual actions that can run in any buffer. It is functionally similar to a right-click menu.
+
+Select a target by pressing the key binding for *embark-act*. Repeat the same key binding to cycle through possible targets. Press *C-h* to navigate or search for actions within the menu.
+
+#+begin_src emacs-lisp
+(use-package embark
+  :bind (("C-." . embark-act))
+  :config
+  (setq embark-mixed-indicator-delay 60))
+#+end_src
+
+Add integration with Consult.
+
+#+begin_src emacs-lisp
+(use-package embark-consult
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+#+end_src
+
+A custom keymap for text transformations loosely based on [[https://github.com/IvanMathy/Boop][Boop]].
+
+#+begin_src emacs-lisp
+(defvar-keymap srashid3/text-transform
+  :doc "Keymap for text transformations."
+  "e" #'base64-encode-region
+  "d" #'base64-decode-region
+  "j" #'json-pretty-print)
+
+(add-to-list 'embark-keymap-alist '(region . srashid3/text-transform))
+#+end_src
+
+** Corfu
+
+[[https://github.com/minad/corfu][Corfu]] provides a popup window for in-buffer completions. It hooks into Emacs *completion-at-region* function.
+
+#+begin_src emacs-lisp
+(use-package corfu
+  :init (global-corfu-mode))
 #+end_src
 
 * Project Management
@@ -525,6 +588,13 @@ Use *M-/* to comment and uncomment blocks of code.
     :bind ("M-/" . evilnc-comment-or-uncomment-lines))
 #+end_src
 
+Preserve the binding for *embark-act* in normal and visual mode.
+
+#+begin_src emacs-lisp
+(define-key evil-normal-state-map (kbd "C-.") #'embark-act)
+(define-key evil-visual-state-map (kbd "C-.") #'embark-act)
+#+end_src
+
 * Org-Mode
 
 Configure [[https://orgmode.org/][org-mode]] for editing documents in Emacs.
@@ -675,7 +745,7 @@ Manage non-hierarchical notes with [[https://github.com/org-roam/org-roam][org-r
     :config
     (org-roam-db-autosync-mode)
     (setq org-roam-dailies-directory "journal")
-    (setq org-roam-node-display-template (concat "${title:40} | " (propertize "${tags}" 'face 'org-tag))))
+    (setq org-roam-node-display-template (concat "${title:40} " (propertize "${tags}" 'face 'marginalia-documentation))))
 #+end_src
 
 Use [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Advising-Functions.html][advising]] to define custom Emacs functions to automatically respond to prompts. The below function will temporarily replace the *yes-or-no-p* with a function that always returns true.
@@ -753,30 +823,6 @@ Define hook for reloading the *PATH* within Eshell.
 #+begin_src emacs-lisp
   (defun srashid3/eshell-reload-path ()
     (eshell-set-path (mapconcat 'identity exec-path ":")))
-#+end_src
-
-** Code Completion
-
-Install [[http://company-mode.github.io/][company-mode]] for code completion. Set the idle delay to zero for instant completions. Complete the current selection with *TAB*.
-
-#+begin_src emacs-lisp
-  (use-package company
-    :after lsp-mode
-    :hook (lsp-mode . company-mode)
-    :bind (:map company-active-map
-           ("<tab>" . company-complete-selection)
-           :map lsp-mode-map
-           ("<tab>" . company-indent-or-complete-common))
-    :custom
-    (company-idle-delay 0)
-    (company-minimum-prefix-length 1))
-#+end_src
-
-Enhance the interface with [[https://github.com/sebastiencs/company-box][company-box]]. Adds additional styling and icons for different backends.
-
-#+begin_src emacs-lisp
-  (use-package company-box
-    :hook (company-mode . company-box-mode))
 #+end_src
 
 ** Language Server

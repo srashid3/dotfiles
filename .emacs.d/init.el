@@ -2,12 +2,12 @@
 
 (setq custom-file (concat user-emacs-directory "custom.el"))
 
-(defvar elpaca-installer-version 0.7)
+(defvar elpaca-installer-version 0.11)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
 (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-                              :ref nil :depth 1
+                              :ref nil :depth 1 :inherit ignore
                               :files (:defaults "elpaca-test.el" (:exclude "extensions"))
                               :build (:not elpaca--activate-package)))
 (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
@@ -17,27 +17,27 @@
   (add-to-list 'load-path (if (file-exists-p build) build repo))
   (unless (file-exists-p repo)
     (make-directory repo t)
-    (when (< emacs-major-version 28) (require 'subr-x))
+    (when (<= emacs-major-version 28) (require 'subr-x))
     (condition-case-unless-debug err
-        (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-                 ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
-                                                 ,@(when-let ((depth (plist-get order :depth)))
-                                                     (list (format "--depth=%d" depth) "--no-single-branch"))
-                                                 ,(plist-get order :repo) ,repo))))
-                 ((zerop (call-process "git" nil buffer t "checkout"
-                                       (or (plist-get order :ref) "--"))))
-                 (emacs (concat invocation-directory invocation-name))
-                 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-                                       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-                 ((require 'elpaca))
-                 ((elpaca-generate-autoloads "elpaca" repo)))
+        (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                  ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                  ,@(when-let* ((depth (plist-get order :depth)))
+                                                      (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                  ,(plist-get order :repo) ,repo))))
+                  ((zerop (call-process "git" nil buffer t "checkout"
+                                        (or (plist-get order :ref) "--"))))
+                  (emacs (concat invocation-directory invocation-name))
+                  ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                        "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                  ((require 'elpaca))
+                  ((elpaca-generate-autoloads "elpaca" repo)))
             (progn (message "%s" (buffer-string)) (kill-buffer buffer))
           (error "%s" (with-current-buffer buffer (buffer-string))))
       ((error) (warn "%s" err) (delete-directory repo 'recursive))))
   (unless (require 'elpaca-autoloads nil t)
     (require 'elpaca)
     (elpaca-generate-autoloads "elpaca" repo)
-    (load "./elpaca-autoloads")))
+    (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
 (add-hook 'after-init-hook #'elpaca-process-queues)
 (elpaca `(,@elpaca-order))
 
@@ -47,31 +47,57 @@
 
 (elpaca-wait)
 
-(use-package ivy
-  :diminish
-  :init (ivy-mode 1)
+(use-package exec-path-from-shell
+  :if (memq window-system '(mac ns x))
   :config
-  (add-to-list 'ivy-ignore-buffers "\\*.*log*.*\\*")
-  (add-to-list 'ivy-ignore-buffers "\\*.*lsp*.*\\*")
-  (add-to-list 'ivy-ignore-buffers "\\*.*clangd*.*\\*")
-  (add-to-list 'ivy-ignore-buffers "\\*Messages\\*")
+  (setq exec-path-from-shell-variables '("PATH"))
+  (exec-path-from-shell-initialize))
+
+(use-package vertico
   :custom
-  (ivy-use-virtual-buffers t)
-  (ivy-count-format "%d/%d "))
+  (vertico-resize t)
+  (vertico-cycle t)
+  :init (vertico-mode))
 
-(use-package ivy-rich
-   :after counsel
-   :init (ivy-rich-mode 1))
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion)))))
 
-(use-package counsel
-  :bind (("M-x" . counsel-M-x)
-         ("C-x b" . counsel-switch-buffer)
-         ("C-x C-f" . counsel-find-file)
-         ("C-h f" . counsel-describe-function)
-         ("C-h v" . counsel-describe-variable)))
+(use-package marginalia
+  :bind (:map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
+  :init
+  (marginalia-mode))
 
-(use-package swiper
-  :bind (("C-s" . 'swiper)))
+(use-package consult
+  :bind (("C-s" . consult-line)
+         ("C-S-s" . consult-line-multi)
+         ("C-x b" . consult-buffer)
+         ("M-g g" . consult-goto-line)
+         ("M-g M-g" . consult-goto-line))
+  :config
+  (setq consult-goto-line-numbers nil))
+
+(use-package embark
+  :bind (("C-." . embark-act))
+  :config
+  (setq embark-mixed-indicator-delay 60))
+
+(use-package embark-consult
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+
+(defvar-keymap srashid3/text-transform
+  :doc "Keymap for text transformations."
+  "e" #'base64-encode-region
+  "d" #'base64-decode-region
+  "j" #'json-pretty-print)
+
+(add-to-list 'embark-keymap-alist '(region . srashid3/text-transform))
+
+(use-package corfu
+  :init (global-corfu-mode))
 
 (use-package projectile
   :diminish projectile-mode
@@ -196,6 +222,9 @@
 (use-package evil-nerd-commenter
   :bind ("M-/" . evilnc-comment-or-uncomment-lines))
 
+(define-key evil-normal-state-map (kbd "C-.") #'embark-act)
+(define-key evil-visual-state-map (kbd "C-.") #'embark-act)
+
 (defun srashid3/org-mode-setup ()
   (org-indent-mode)
   (variable-pitch-mode 1)
@@ -270,7 +299,7 @@
   :config
   (org-roam-db-autosync-mode)
   (setq org-roam-dailies-directory "journal")
-  (setq org-roam-node-display-template (concat "${title:40} | " (propertize "${tags}" 'face 'org-tag))))
+  (setq org-roam-node-display-template (concat "${title:40} " (propertize "${tags}" 'face 'marginalia-documentation))))
 
 (defun srashid3/org-roam-abort (func &rest args)
   (message "Deleted file for aborted capture")
@@ -307,20 +336,6 @@
 
 (defun srashid3/eshell-reload-path ()
   (eshell-set-path (mapconcat 'identity exec-path ":")))
-
-(use-package company
-  :after lsp-mode
-  :hook (lsp-mode . company-mode)
-  :bind (:map company-active-map
-         ("<tab>" . company-complete-selection)
-         :map lsp-mode-map
-         ("<tab>" . company-indent-or-complete-common))
-  :custom
-  (company-idle-delay 0)
-  (company-minimum-prefix-length 1))
-
-(use-package company-box
-  :hook (company-mode . company-box-mode))
 
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
