@@ -360,6 +360,12 @@ Disable unused elements in GUI mode such as menu and scroll bars.
   (tooltip-mode -1)
 #+end_src
 
+Resolve resizing issues in certain environments.
+
+#+begin_src emacs-lisp
+  (setq frame-resize-pixelwise t)
+#+end_src
+
 ** Cursor Postion
 
 By default, Emacs will only display the current row on the modeline. Enable *column-number-mode* to display the current column.
@@ -732,7 +738,7 @@ Manage non-hierarchical notes with [[https://github.com/org-roam/org-roam][org-r
 #+begin_src emacs-lisp
   (use-package org-roam
     :custom
-    (org-roam-directory (file-truename "~/Github/org-notes"))
+    (org-roam-directory (file-truename "~/GitHub/org-notes"))
     (org-roam-capture-templates
      '(("m" "main" plain "%?"
       :if-new (file+head "main/${slug}.org" "#+title: ${title}\n#+filetags: :draft:\n")

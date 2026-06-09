@@ -121,6 +121,8 @@
 (scroll-bar-mode -1)
 (tooltip-mode -1)
 
+(setq frame-resize-pixelwise t)
+
 (column-number-mode)
 
 (global-display-line-numbers-mode t)
@@ -291,7 +293,7 @@
 
 (use-package org-roam
   :custom
-  (org-roam-directory (file-truename "~/Github/org-notes"))
+  (org-roam-directory (file-truename "~/GitHub/org-notes"))
   (org-roam-capture-templates
    '(("m" "main" plain "%?"
     :if-new (file+head "main/${slug}.org" "#+title: ${title}\n#+filetags: :draft:\n")
