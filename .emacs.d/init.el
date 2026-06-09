@@ -2,15 +2,15 @@
 
 (setq custom-file (concat user-emacs-directory "custom.el"))
 
-(defvar elpaca-installer-version 0.11)
+(defvar elpaca-installer-version 0.12)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-sources-directory (expand-file-name "sources/" elpaca-directory))
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
                               :ref nil :depth 1 :inherit ignore
                               :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-                              :build (:not elpaca--activate-package)))
-(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+                              :build (:not elpaca-activate)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-sources-directory))
        (build (expand-file-name "elpaca/" elpaca-builds-directory))
        (order (cdr elpaca-order))
        (default-directory repo))
@@ -43,9 +43,11 @@
 
 (elpaca elpaca-use-package
   (elpaca-use-package-mode)
-  (setq elpaca-use-package-by-default t))
+  (setq use-package-always-ensure t))
 
 (elpaca-wait)
+
+(use-package compat)
 
 (use-package exec-path-from-shell
   :if (memq window-system '(mac ns x))
@@ -82,19 +84,19 @@
 (use-package embark
   :bind (("C-." . embark-act))
   :config
-  (setq embark-mixed-indicator-delay 60))
+  (setq embark-mixed-indicator-delay 60)
+
+  (defvar-keymap srashid3/text-transform
+    :doc "Keymap for text transformations."
+     "e" #'base64-encode-region
+     "d" #'base64-decode-region
+     "j" #'json-pretty-print)
+
+  (add-to-list 'embark-keymap-alist '(region . srashid3/text-transform)))
 
 (use-package embark-consult
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
-
-(defvar-keymap srashid3/text-transform
-  :doc "Keymap for text transformations."
-  "e" #'base64-encode-region
-  "d" #'base64-decode-region
-  "j" #'json-pretty-print)
-
-(add-to-list 'embark-keymap-alist '(region . srashid3/text-transform))
 
 (use-package corfu
   :init (global-corfu-mode))
@@ -133,8 +135,8 @@
 
 (setq srashid3/font-height 180)
 
-(set-face-attribute 'default nil :font "Menlo" :height srashid3/font-height)
-(set-face-attribute 'fixed-pitch nil :font "Menlo" :height srashid3/font-height)
+(set-face-attribute 'default nil :font "Monospace" :height srashid3/font-height)
+(set-face-attribute 'fixed-pitch nil :font "Monospace" :height srashid3/font-height)
 (set-face-attribute 'variable-pitch nil :font "Cantarell" :height srashid3/font-height :weight 'regular)
 
 (use-package mixed-pitch

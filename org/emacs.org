@@ -19,7 +19,6 @@ Disable the default package management system in *early-init.el*.
 Run prerequisite commands for various packages.
 
 #+begin_src emacs-lisp :tangle no
-  (eat-compile-term-info)
   (nerd-icons-install-fonts)
 #+end_src
 
@@ -113,15 +112,15 @@ The built-in package manager for Emacs is *package.el*. By default, Emacs uses [
 The following will clone and configure Elpaca in the user's Emacs directory.
 
 #+begin_src emacs-lisp
-(defvar elpaca-installer-version 0.11)
+(defvar elpaca-installer-version 0.12)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-sources-directory (expand-file-name "sources/" elpaca-directory))
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
                               :ref nil :depth 1 :inherit ignore
                               :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-                              :build (:not elpaca--activate-package)))
-(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+                              :build (:not elpaca-activate)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-sources-directory))
        (build (expand-file-name "elpaca/" elpaca-builds-directory))
        (order (cdr elpaca-order))
        (default-directory repo))
@@ -168,21 +167,21 @@ As of Emacs 29, [[https://github.com/jwiegley/use-package][use-package]] is a bu
 #+begin_src emacs-lisp
   (elpaca elpaca-use-package
     (elpaca-use-package-mode)
-    (setq elpaca-use-package-by-default t))
+    (setq use-package-always-ensure t))
 
   (elpaca-wait)
 #+end_src
 
-Note that *use-package-always-ensure* is specific to *package.el* and should not be used alongside Elpaca.
+Note that *elpaca-use-package-by-default* has been deprecated in favor of *use-package-always-ensure*.
 
-#+begin_src emacs-lisp :tangle no
-  (unless (package-installed-p 'use-package)
-    (package-install 'use-package))
+** Compat
 
-  (require 'use-package)
+As of Emacs 30, [[https://github.com/emacs-compat/compat][compat]] is a built-in package. Explicitly install compat to ensure compability with new packages.
 
-  (setq use-package-always-ensure t)
+#+begin_src emacs-lisp
+  (use-package compat)
 #+end_src
+
 * Environment Variables
 
 Configure environment variables for Emacs.
@@ -273,11 +272,21 @@ Use *marginalia-cycle* to change how much detail is shown.
 
 Select a target by pressing the key binding for *embark-act*. Repeat the same key binding to cycle through possible targets. Press *C-h* to navigate or search for actions within the menu.
 
+Configured with a custom keymap for text transformations loosely based on [[https://github.com/IvanMathy/Boop][Boop]].
+
 #+begin_src emacs-lisp
-(use-package embark
-  :bind (("C-." . embark-act))
-  :config
-  (setq embark-mixed-indicator-delay 60))
+  (use-package embark
+    :bind (("C-." . embark-act))
+    :config
+    (setq embark-mixed-indicator-delay 60)
+
+    (defvar-keymap srashid3/text-transform
+      :doc "Keymap for text transformations."
+       "e" #'base64-encode-region
+       "d" #'base64-decode-region
+       "j" #'json-pretty-print)
+
+    (add-to-list 'embark-keymap-alist '(region . srashid3/text-transform)))
 #+end_src
 
 Add integration with Consult.
@@ -286,18 +295,6 @@ Add integration with Consult.
 (use-package embark-consult
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
-#+end_src
-
-A custom keymap for text transformations loosely based on [[https://github.com/IvanMathy/Boop][Boop]].
-
-#+begin_src emacs-lisp
-(defvar-keymap srashid3/text-transform
-  :doc "Keymap for text transformations."
-  "e" #'base64-encode-region
-  "d" #'base64-decode-region
-  "j" #'json-pretty-print)
-
-(add-to-list 'embark-keymap-alist '(region . srashid3/text-transform))
 #+end_src
 
 ** Corfu
@@ -404,8 +401,8 @@ Set the font height.
 Configure the fonts used by standard faces. Note that the heights must be relatively close in size to avoid issues with line spacing in org-mode.
 
 #+begin_src emacs-lisp
-  (set-face-attribute 'default nil :font "Menlo" :height srashid3/font-height)
-  (set-face-attribute 'fixed-pitch nil :font "Menlo" :height srashid3/font-height)
+  (set-face-attribute 'default nil :font "Monospace" :height srashid3/font-height)
+  (set-face-attribute 'fixed-pitch nil :font "Monospace" :height srashid3/font-height)
   (set-face-attribute 'variable-pitch nil :font "Cantarell" :height srashid3/font-height :weight 'regular)
 #+end_src
 
