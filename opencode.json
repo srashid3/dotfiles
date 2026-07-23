@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "litellm": {
+      "name": "LiteLLM",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://192.168.1.225:4000/v1",
+        "apiKey": "{env:LITELLM_API_KEY}"
+      },
+      "models": {
+        "opencode-build": {
+          "name": "OpenBuild"
+        },
+	"opencode-plan": {
+          "name": "OpenPlan"
+        }
+      }
+    },
+    "local": {
+      "name": "Local", 
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://192.168.1.225:4000/v1",
+        "apiKey": "{env:OLLAMA_API_KEY}"
+      },
+      "models": {
+        "ollama-llama3.2": {
+          "name": "Llama 3.2"
+        }
+      }
+    }
+  },
+  "model": "litellm/opencode-build",
+  "agent": {
+    "plan": {
+      "model": "litellm/opencode-plan"
+    }
+  }
+}
