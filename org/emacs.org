@@ -384,7 +384,8 @@ Display line numbers in all buffers except for org-mode and terminals.
   (dolist (mode '(org-mode-hook
                   term-mode-hook
                   eshell-mode-hook
-                  eat-mode-hook))
+                  eat-mode-hook
+                  agent-shell-mode-hook))
     (add-hook mode (lambda() (display-line-numbers-mode 0))))
 #+end_src
 
@@ -580,7 +581,8 @@ Configure the terminal to default to Emacs mode. Press *C-z* to toggle Emacs mod
   (dolist (mode '(term-mode
                   eshell-mode
                   eat-mode
-                  dashboard-mode))
+                  dashboard-mode
+                  agent-shell-mode))
     (evil-set-initial-state mode 'emacs))
 #+end_src
 
@@ -893,4 +895,25 @@ Reload *PATH* in Eshell after activating or deactivating virtual environment.
 #+begin_src emacs-lisp
   (add-hook 'pyvenv-post-activate-hooks 'srashid3/eshell-reload-path)
   (add-hook 'pyvenv-post-deactivate-hooks 'srashid3/eshell-reload-path)
+#+end_src
+
+* Large Language Models
+
+Support for LLMs and agent harnesses within Emacs.
+
+** Agent Shell
+
+Setup [[https://github.com/xenodium/agent-shell][agent-shell]] for a native Emacs interface for agents powered by ACP.
+
+Configure OpenCode as the primary harness. Disable writing transcripts to the filesystem.
+
+#+begin_src emacs-lisp
+  (defun srashid3/agent-shell-setup ()
+    (setq-local shell-maker-prompt-before-killing-buffer nil))
+
+  (use-package agent-shell
+    :hook (agent-shell-mode . srashid3/agent-shell-setup)
+    :config
+    (setq agent-shell-preferred-agent-config 'opencode)
+    (setq agent-shell-transcript-file-path-function nil))
 #+end_src

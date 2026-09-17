@@ -130,7 +130,8 @@
 (dolist (mode '(org-mode-hook
                 term-mode-hook
                 eshell-mode-hook
-                eat-mode-hook))
+                eat-mode-hook
+                agent-shell-mode-hook))
   (add-hook mode (lambda() (display-line-numbers-mode 0))))
 
 (delete-selection-mode t)
@@ -220,7 +221,8 @@
 (dolist (mode '(term-mode
                 eshell-mode
                 eat-mode
-                dashboard-mode))
+                dashboard-mode
+                agent-shell-mode))
   (evil-set-initial-state mode 'emacs))
 
 (use-package evil-nerd-commenter
@@ -369,3 +371,12 @@
 
 (add-hook 'pyvenv-post-activate-hooks 'srashid3/eshell-reload-path)
 (add-hook 'pyvenv-post-deactivate-hooks 'srashid3/eshell-reload-path)
+
+(defun srashid3/agent-shell-setup ()
+  (setq-local shell-maker-prompt-before-killing-buffer nil))
+
+(use-package agent-shell
+  :hook (agent-shell-mode . srashid3/agent-shell-setup)
+  :config
+  (setq agent-shell-preferred-agent-config 'opencode)
+  (setq agent-shell-transcript-file-path-function nil))
