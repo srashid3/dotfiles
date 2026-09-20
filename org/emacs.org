@@ -13,13 +13,13 @@ Initial setup for a clean install of Emacs.
 Disable the default package management system in *early-init.el*.
 
 #+begin_src emacs-lisp :tangle no
-  (setq package-enable-at-startup nil)
+(setq package-enable-at-startup nil)
 #+end_src
 
 Run prerequisite commands for various packages.
 
 #+begin_src emacs-lisp :tangle no
-  (nerd-icons-install-fonts)
+(nerd-icons-install-fonts)
 #+end_src
 
 ** System
@@ -95,7 +95,7 @@ Update the default files and directories used by Emacs.
 Change the default backup directory.
 
 #+begin_src emacs-lisp
-  (setq backup-directory-alist '(("." . "~/.emacs-backups")))
+(setq backup-directory-alist '(("." . "~/.emacs-backups")))
 #+end_src
 
 ** Custom File
@@ -103,7 +103,7 @@ Change the default backup directory.
 Manage the customization interface in a separate file.
 
 #+begin_src emacs-lisp
-  (setq custom-file (concat user-emacs-directory "custom.el"))
+(setq custom-file (concat user-emacs-directory "custom.el"))
 #+end_src
 
 * Package Management
@@ -162,7 +162,7 @@ The following will clone and configure Elpaca in the user's Emacs directory.
 Note that Elpaca requires the default package manager to be disabled. Add the following configuration to *early-init.el*.
 
 #+begin_src emacs-lisp :tangle no
-  (setq package-enable-at-startup nil)
+(setq package-enable-at-startup nil)
 #+end_src
 
 Elpaca will first read the entire init file and then process its package queues. Each order is automatically placed in a queue. Use *elpaca-wait* to block the current queue and place proceeding orders in a new queue. For built-in packages, disable *ensure* to avoid installing anything.
@@ -172,11 +172,11 @@ Elpaca will first read the entire init file and then process its package queues.
 As of Emacs 29, [[https://github.com/jwiegley/use-package][use-package]] is a built-in macro. Enable Elpaca support for use-package.
 
 #+begin_src emacs-lisp
-  (elpaca elpaca-use-package
-    (elpaca-use-package-mode)
-    (setq use-package-always-ensure t))
+(elpaca elpaca-use-package
+  (elpaca-use-package-mode)
+  (setq use-package-always-ensure t))
 
-  (elpaca-wait)
+(elpaca-wait)
 #+end_src
 
 Note that *elpaca-use-package-by-default* has been deprecated in favor of *use-package-always-ensure*.
@@ -186,7 +186,7 @@ Note that *elpaca-use-package-by-default* has been deprecated in favor of *use-p
 As of Emacs 30, [[https://github.com/emacs-compat/compat][compat]] is a built-in package. Explicitly install compat to ensure compability with new packages.
 
 #+begin_src emacs-lisp
-  (use-package compat)
+(use-package compat)
 #+end_src
 
 * Environment Variables
@@ -282,18 +282,18 @@ Select a target by pressing the key binding for *embark-act*. Repeat the same ke
 Configured with a custom keymap for text transformations loosely based on [[https://github.com/IvanMathy/Boop][Boop]].
 
 #+begin_src emacs-lisp
-  (use-package embark
-    :bind (("C-." . embark-act))
-    :config
-    (setq embark-mixed-indicator-delay 60)
+(use-package embark
+  :bind (("C-." . embark-act))
+  :config
+  (setq embark-mixed-indicator-delay 60)
 
-    (defvar-keymap srashid3/text-transform
-      :doc "Keymap for text transformations."
-       "e" #'base64-encode-region
-       "d" #'base64-decode-region
-       "j" #'json-pretty-print)
+  (defvar-keymap srashid3/text-transform
+    :doc "Keymap for text transformations."
+    "e" #'base64-encode-region
+    "d" #'base64-decode-region
+    "j" #'json-pretty-print)
 
-    (add-to-list 'embark-keymap-alist '(region . srashid3/text-transform)))
+  (add-to-list 'embark-keymap-alist '(region . srashid3/text-transform)))
 #+end_src
 
 Add integration with Consult.
@@ -322,20 +322,20 @@ Packages related to project management within Emacs.
 Install [[https://github.com/bbatsov/projectile][Projectile]] with Ivy as as the completion system.
 
 #+begin_src emacs-lisp
-  (use-package projectile
-    :diminish projectile-mode
-    :init (projectile-mode 1)
-    :bind-keymap ("C-c p" . projectile-command-map)
-    :custom
-    (projectile-completion-system 'ivy)
-    (projectile-project-search-path '("~/Github")))
+(use-package projectile
+  :diminish projectile-mode
+  :init (projectile-mode 1)
+  :bind-keymap ("C-c p" . projectile-command-map)
+  :custom
+  (projectile-completion-system 'ivy)
+  (projectile-project-search-path '("~/Github")))
 #+end_src
 
 Install [[https://github.com/ericdanan/counsel-projectile][counsel-projectile]] for an improved with Ivy.
 
 #+begin_src emacs-lisp
-  (use-package counsel-projectile
-    :init (counsel-projectile-mode 1))
+(use-package counsel-projectile
+  :init (counsel-projectile-mode 1))
 #+end_src
 
 ** Magit
@@ -343,13 +343,13 @@ Install [[https://github.com/ericdanan/counsel-projectile][counsel-projectile]] 
 [[https://magit.vc/][Magit]] is a text-based user interface for Git.
 
 #+begin_src emacs-lisp
-  (use-package magit)
+(use-package magit)
 #+end_src
 
 Explicitly install [[https://github.com/magit/transient][Transient]] as a required dependency for Magit.
 
 #+begin_src emacs-lisp
-  (use-package transient)
+(use-package transient)
 #+end_src
 
 * User Interface
@@ -361,16 +361,16 @@ Customize the Emacs user interface.
 Disable unused elements in GUI mode such as menu and scroll bars.
 
 #+begin_src emacs-lisp
-  (menu-bar-mode -1)
-  (tool-bar-mode -1)
-  (scroll-bar-mode -1)
-  (tooltip-mode -1)
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+(tooltip-mode -1)
 #+end_src
 
 Resolve resizing issues in certain environments.
 
 #+begin_src emacs-lisp
-  (setq frame-resize-pixelwise t)
+(setq frame-resize-pixelwise t)
 #+end_src
 
 ** Cursor Postion
@@ -378,7 +378,7 @@ Resolve resizing issues in certain environments.
 By default, Emacs will only display the current row on the modeline. Enable *column-number-mode* to display the current column.
 
 #+begin_src emacs-lisp
-  (column-number-mode)
+(column-number-mode)
 #+end_src
 
 ** Line Numbers
@@ -386,14 +386,14 @@ By default, Emacs will only display the current row on the modeline. Enable *col
 Display line numbers in all buffers except for org-mode and terminals. 
 
 #+begin_src emacs-lisp
-  (global-display-line-numbers-mode t)
+(global-display-line-numbers-mode t)
 
-  (dolist (mode '(org-mode-hook
-                  term-mode-hook
-                  eshell-mode-hook
-                  ghostel-mode-hook
-                  agent-shell-mode-hook))
-    (add-hook mode (lambda() (display-line-numbers-mode 0))))
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                eshell-mode-hook
+                ghostel-mode-hook
+                agent-shell-mode-hook))
+  (add-hook mode (lambda() (display-line-numbers-mode 0))))
 #+end_src
 
 ** Text Selection
@@ -401,7 +401,7 @@ Display line numbers in all buffers except for org-mode and terminals.
 By default, Emacs will append to the end of selected text. Enable *delete-selection-mode* to delete the selected text instead.
 
 #+begin_src emacs-lisp
-  (delete-selection-mode t)
+(delete-selection-mode t)
 #+end_src
 
 ** Fonts
@@ -455,9 +455,9 @@ Override for terminal emulators to ensure perfect TUI rendering.
 Configure the standard faces. Note that heights must be relatively close to avoid issues with line spacing.
 
 #+begin_src emacs-lisp
-  (set-face-attribute 'default nil :font srashid3/font-fixed-pitch :height srashid3/font-height)
-  (set-face-attribute 'fixed-pitch nil :font srashid3/font-fixed-pitch :height srashid3/font-height)
-  (set-face-attribute 'variable-pitch nil :font srashid3/font-variable-pitch :height srashid3/font-height :weight 'regular)
+(set-face-attribute 'default nil :font srashid3/font-fixed-pitch :height srashid3/font-height)
+(set-face-attribute 'fixed-pitch nil :font srashid3/font-fixed-pitch :height srashid3/font-height)
+(set-face-attribute 'variable-pitch nil :font srashid3/font-variable-pitch :height srashid3/font-height :weight 'regular)
 #+end_src
 
 Use [[https://github.com/emacsmirror/mixed-pitch][mixed-pitch]] to automatically handle fixed-pitch and variable-pitch fonts.
@@ -473,7 +473,7 @@ Use [[https://github.com/emacsmirror/mixed-pitch][mixed-pitch]] to automatically
 Install [[https://github.com/rainstormstudio/nerd-icons.el][nerd-icons]], an alternative to [[https://github.com/domtronn/all-the-icons.el][all-the-icons]], which has support for both the GUI and terminal.
 
 #+begin_src emacs-lisp
-  (use-package nerd-icons)
+(use-package nerd-icons)
 #+end_src
 
 Note that *nerd-icons-install-fonts* must be run on a clean install. If using iTerm2, specify *Symbols Nerd Font Mono* as the non-ASCII font.
@@ -483,22 +483,22 @@ Note that *nerd-icons-install-fonts* must be run on a clean install. If using iT
 Install [[https://github.com/emacsmirror/diminish][diminish]] to hide major or minor modes from the modeline display.
 
 #+begin_src emacs-lisp
-  (use-package diminish)
+(use-package diminish)
 #+end_src
 
 Install custom modeline from Doom Emacs.
 
 #+begin_src emacs-lisp
-  (use-package doom-modeline
-    :init (doom-modeline-mode 1)
-    :custom (doom-modeline-height 25))
+(use-package doom-modeline
+  :init (doom-modeline-mode 1)
+  :custom (doom-modeline-height 25))
 #+end_src
 
 Explicitly install [[https://github.com/zbelial/shrink-path.el][shrink-path]] as a required dependency for doom-modeline.
 
 #+begin_src emacs-lisp
-  (use-package shrink-path
-    :ensure (:host github :repo "https://github.com/zbelial/shrink-path.el"))
+(use-package shrink-path
+  :ensure (:host github :repo "https://github.com/zbelial/shrink-path.el"))
 #+end_src
 
 ** Themes
@@ -506,8 +506,8 @@ Explicitly install [[https://github.com/zbelial/shrink-path.el][shrink-path]] as
 Install additional themes from Protesilaos.
 
 #+begin_src emacs-lisp
-  (use-package ef-themes
-    :init (load-theme 'ef-owl t))
+(use-package ef-themes
+  :init (load-theme 'ef-owl t))
 #+end_src
 
 ** Dashboard
@@ -515,26 +515,26 @@ Install additional themes from Protesilaos.
 Replace the default startup message with [[https://github.com/emacs-dashboard/emacs-dashboard][emacs-dashboard]].
 
 #+begin_src emacs-lisp
-  (use-package dashboard
-    :config
-    (add-hook 'elpaca-after-init-hook #'dashboard-insert-startupify-lists)
-    (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
-    (dashboard-setup-startup-hook)
-    :custom
-    (dashboard-startup-banner 'logo)
-    (dashboard-center-content t)
-    (dashboard-display-icons-p t)
-    (dashboard-icon-type 'nerd-icons)
-    (dashboard-set-file-icons t)
-    (dashboard-startupify-list '(dashboard-insert-banner
-                                 dashboard-insert-newline
-                                 dashboard-insert-banner-title
-                                 dashboard-insert-newline
-                                 dashboard-insert-init-info
-                                 dashboard-insert-items))
-    (dashboard-items '((recents . 5)
-                       (projects . 5)
-                       (bookmarks . 5))))
+(use-package dashboard
+  :config
+  (add-hook 'elpaca-after-init-hook #'dashboard-insert-startupify-lists)
+  (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
+  (dashboard-setup-startup-hook)
+  :custom
+  (dashboard-startup-banner 'logo)
+  (dashboard-center-content t)
+  (dashboard-display-icons-p t)
+  (dashboard-icon-type 'nerd-icons)
+  (dashboard-set-file-icons t)
+  (dashboard-startupify-list '(dashboard-insert-banner
+                               dashboard-insert-newline
+                               dashboard-insert-banner-title
+                               dashboard-insert-newline
+                               dashboard-insert-init-info
+                               dashboard-insert-items))
+  (dashboard-items '((recents . 5)
+                     (projects . 5)
+                     (bookmarks . 5))))
 #+end_src
 
 * Key Bindings
@@ -550,21 +550,21 @@ Note that *<tab>* refers to the tab key on the keyboard while *TAB* is the seque
 Use *ESC* to close the current buffer or minibuffer.
 
 #+begin_src emacs-lisp
-  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 #+end_src
 
 Disable the key binding for news to prevent entries in *recentf*.
 
 #+begin_src emacs-lisp
-  (global-unset-key (kbd "C-h n"))
+(global-unset-key (kbd "C-h n"))
 #+end_src
 
 Custom key bindings for the prefix *C-c*.
 
 #+begin_src emacs-lisp
-  (global-set-key (kbd "C-c c") 'comint-clear-buffer)
-  (global-set-key (kbd "C-c r") 'revert-buffer)
-  (global-set-key (kbd "C-c d") 'delete-trailing-whitespace)
+(global-set-key (kbd "C-c c") 'comint-clear-buffer)
+(global-set-key (kbd "C-c r") 'revert-buffer)
+(global-set-key (kbd "C-c d") 'delete-trailing-whitespace)
 #+end_src
 
 ** Which Key
@@ -572,11 +572,11 @@ Custom key bindings for the prefix *C-c*.
 Install [[https://github.com/justbur/emacs-which-key][which-key]] to automatically display possibile completions for a given prefix. The time delay is configured in seconds.
 
 #+begin_src emacs-lisp
-  (use-package which-key
-    :diminish
-    :config
-    (which-key-mode)
-    (setq which-key-idle-delay 1))
+(use-package which-key
+  :diminish
+  :config
+  (which-key-mode)
+  (setq which-key-idle-delay 1))
 #+end_src
 
 ** Hydra
@@ -584,28 +584,28 @@ Install [[https://github.com/justbur/emacs-which-key][which-key]] to automatical
 Install [[https://github.com/abo-abo/hydra][Hydra]] to quickly reuse key bindings in rapid succession.
 
 #+begin_src emacs-lisp
-  (use-package hydra)
-  (elpaca-wait)
+(use-package hydra)
+(elpaca-wait)
 #+end_src
 
 Increase or decrease the text scale.
 
 #+begin_src emacs-lisp
-  (defhydra hydra-scale-text (global-map "C-c t")
-    "scale-text"
-    ("j" text-scale-increase "increase")
-    ("k" text-scale-decrease "decrease")
-    ("f" nil "finished" :exit t))
+(defhydra hydra-scale-text (global-map "C-c t")
+  "scale-text"
+  ("j" text-scale-increase "increase")
+  ("k" text-scale-decrease "decrease")
+  ("f" nil "finished" :exit t))
 #+end_src
 
 Resize windows horizontally.
 
 #+begin_src emacs-lisp
-  (defhydra hydra-resize-border (global-map "C-c w")
-    "resize-border"
-    ("j" enlarge-window-horizontally "increase")
-    ("k" shrink-window-horizontally "decrease")
-    ("f" nil "finished" :exit t))
+(defhydra hydra-resize-border (global-map "C-c w")
+  "resize-border"
+  ("j" enlarge-window-horizontally "increase")
+  ("k" shrink-window-horizontally "decrease")
+  ("f" nil "finished" :exit t))
 #+end_src
     
 ** Evil Mode
@@ -613,31 +613,31 @@ Resize windows horizontally.
 Enable [[https://github.com/emacs-evil/evil][evil-mode]] for Vim emulation. Configure the undo system to add redo support. Disable *evil-jump-forward* so *org-cycle* works with *TAB* in terminal mode.
 
 #+begin_src emacs-lisp
-  (use-package evil
-    :init
-    (setq evil-want-C-i-jump nil)
-    (evil-mode 1)
-    :config (evil-set-undo-system 'undo-redo))
+(use-package evil
+  :init
+  (setq evil-want-C-i-jump nil)
+  (evil-mode 1)
+  :config (evil-set-undo-system 'undo-redo))
 
-  (elpaca-wait)
+(elpaca-wait)
 #+end_src
 
 Configure the terminal to default to Emacs mode. Press *C-z* to toggle Emacs mode.
 
 #+begin_src emacs-lisp
-  (dolist (mode '(term-mode
-                  eshell-mode
-                  ghostel-mode
-                  dashboard-mode
-                  agent-shell-mode))
-    (evil-set-initial-state mode 'emacs))
+(dolist (mode '(term-mode
+                eshell-mode
+                ghostel-mode
+                dashboard-mode
+                agent-shell-mode))
+  (evil-set-initial-state mode 'emacs))
 #+end_src
 
 Use *M-/* to comment and uncomment blocks of code.
 
 #+begin_src emacs-lisp
-  (use-package evil-nerd-commenter
-    :bind ("M-/" . evilnc-comment-or-uncomment-lines))
+(use-package evil-nerd-commenter
+  :bind ("M-/" . evilnc-comment-or-uncomment-lines))
 #+end_src
 
 Preserve the binding for *embark-act* in normal and visual mode.
@@ -664,20 +664,20 @@ Configure org-mode with the following settings.
 - Hide Emphasis Markers
   
 #+begin_src emacs-lisp
-  (defun srashid3/org-mode-setup ()
-    (org-indent-mode)
-    (variable-pitch-mode 1)
-    (visual-line-mode 1))
+(defun srashid3/org-mode-setup ()
+  (org-indent-mode)
+  (variable-pitch-mode 1)
+  (visual-line-mode 1))
 
-  (use-package org
-    :ensure nil
-    :hook (org-mode . srashid3/org-mode-setup)
-    :config
-    (set-face-underline 'org-ellipsis nil)
-    :custom
-    (org-ellipsis " ▾")
-    (org-startup-folded t)
-    (org-hide-emphasis-markers t))
+(use-package org
+  :ensure nil
+  :hook (org-mode . srashid3/org-mode-setup)
+  :config
+  (set-face-underline 'org-ellipsis nil)
+  :custom
+  (org-ellipsis " ▾")
+  (org-startup-folded t)
+  (org-hide-emphasis-markers t))
 #+end_src
 
 ** Bullets
@@ -685,10 +685,10 @@ Configure org-mode with the following settings.
 Customize unordered lists with [[https://github.com/sabof/org-bullets][org-bullets]].
 
 #+begin_src emacs-lisp
-  (use-package org-bullets
-    :after org
-    :hook (org-mode . org-bullets-mode)
-    :custom (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+(use-package org-bullets
+  :after org
+  :hook (org-mode . org-bullets-mode)
+  :custom (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
 #+end_src
 
 ** Visual Column
@@ -696,12 +696,12 @@ Customize unordered lists with [[https://github.com/sabof/org-bullets][org-bulle
 Visually center text with [[https://codeberg.org/joostkremers/visual-fill-column][visual-fill-column]].
 
 #+begin_src emacs-lisp
-  (defun srashid3/org-mode-visual-column ()
-    (setq visual-fill-column-center-text t)
-    (visual-fill-column-mode 1))
+(defun srashid3/org-mode-visual-column ()
+  (setq visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
 
-  (use-package visual-fill-column
-    :hook (org-mode . srashid3/org-mode-visual-column))
+(use-package visual-fill-column
+  :hook (org-mode . srashid3/org-mode-visual-column))
 #+end_src
 
 ** Auto-Tangle
@@ -709,9 +709,9 @@ Visually center text with [[https://codeberg.org/joostkremers/visual-fill-column
 Automatically tangle files on save with [[https://github.com/yilkalargaw/org-auto-tangle][org-auto-tangle]]. Note that files are tangled asynchronously.
 
 #+begin_src emacs-lisp
-  (use-package org-auto-tangle
-    :defer t
-    :hook (org-mode . org-auto-tangle-mode))
+(use-package org-auto-tangle
+  :defer t
+  :hook (org-mode . org-auto-tangle-mode))
 #+end_src
 
 ** Spell Check
@@ -728,32 +728,32 @@ Note that these commands only work if one of the following are installed on your
 Custom hook that enables *flyspell-mode* by default in org-mode buffers. Can optionally be disabled by using the flyspell keyword.
 
 #+begin_src emacs-lisp
-  (defun srashid3/org-flyspell-hook ()
-    (let* ((flyspell-key (org-collect-keywords '("FLYSPELL")))
-           (flyspell-val (car (last (car flyspell-key)))))
-      (unless (and flyspell-key (not (intern flyspell-val)))
-        (flyspell-mode 1))))
+(defun srashid3/org-flyspell-hook ()
+  (let* ((flyspell-key (org-collect-keywords '("FLYSPELL")))
+         (flyspell-val (car (last (car flyspell-key)))))
+    (unless (and flyspell-key (not (intern flyspell-val)))
+      (flyspell-mode 1))))
 #+end_src
 
 Configure [[http://aspell.net/][Aspell]] as the default spell checker.
 
 #+begin_src emacs-lisp
-  (use-package flyspell
-    :ensure nil
-    :hook (org-mode . srashid3/org-flyspell-hook)
-    :custom (setq ispell-program-name "aspell"))
+(use-package flyspell
+  :ensure nil
+  :hook (org-mode . srashid3/org-flyspell-hook)
+  :custom (setq ispell-program-name "aspell"))
 #+end_src
 
 Add Ivy support with [[https://github.com/d12frosted/flyspell-correct][flyspell-correct]]. Rebind *flyspell-auto-correct-word* to *flyspell-correct-wrapper*.
 
 #+begin_src emacs-lisp
-  (use-package flyspell-correct
-    :after flyspell
-    :bind (:map flyspell-mode-map
-           ("M-TAB" . flyspell-correct-wrapper)))
+(use-package flyspell-correct
+  :after flyspell
+  :bind (:map flyspell-mode-map
+              ("M-TAB" . flyspell-correct-wrapper)))
 
-  (use-package flyspell-correct-ivy
-    :after flyspell-correct)
+(use-package flyspell-correct-ivy
+  :after flyspell-correct)
 #+end_src
 
 ** Babel
@@ -761,11 +761,11 @@ Add Ivy support with [[https://github.com/d12frosted/flyspell-correct][flyspell-
 Execute source code with [[https://orgmode.org/worg/org-contrib/babel/][Babel]]. Refer to the documentation for a complete list of supported languages.
 
 #+begin_src emacs-lisp
-  (org-babel-do-load-languages
-  'org-babel-load-languages
-  '((emacs-lisp . t)
-    (shell . t)
-    (python . t)))
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (shell . t)
+   (python . t)))
 #+end_src
 
 ** Structure Templates
@@ -773,10 +773,18 @@ Execute source code with [[https://orgmode.org/worg/org-contrib/babel/][Babel]].
 Quickly generate empty structural blocks with [[https://orgmode.org/manual/Structure-Templates.html][org-tempo]].
 
 #+begin_src emacs-lisp
-  (require 'org-tempo)
-  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-  (add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
+(require 'org-tempo)
+(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+(add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+(add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
+#+end_src
+
+Use native indentation inside code blocks.
+
+#+begin_src emacs-lisp
+(setq org-edit-src-content-indentation 0)
+(setq org-src-preserve-indentation t)
+(setq org-src-tab-acts-natively t)
 #+end_src
 
 ** Org-Roam
@@ -784,35 +792,35 @@ Quickly generate empty structural blocks with [[https://orgmode.org/manual/Struc
 Manage non-hierarchical notes with [[https://github.com/org-roam/org-roam][org-roam]].
 
 #+begin_src emacs-lisp
-  (use-package org-roam
-    :custom
-    (org-roam-directory (file-truename "~/GitHub/org-notes"))
-    (org-roam-capture-templates
-     '(("m" "main" plain "%?"
+(use-package org-roam
+  :custom
+  (org-roam-directory (file-truename "~/GitHub/org-notes"))
+  (org-roam-capture-templates
+   '(("m" "main" plain "%?"
       :if-new (file+head "main/${slug}.org" "#+title: ${title}\n#+filetags: :draft:\n")
       :unnarrowed t)))
-    :bind (("C-c n f" . org-roam-node-find)
-           ("C-c n i" . org-roam-node-insert))
-    :config
-    (org-roam-db-autosync-mode)
-    (setq org-roam-dailies-directory "journal")
-    (setq org-roam-node-display-template (concat "${title:40} " (propertize "${tags}" 'face 'marginalia-documentation))))
+  :bind (("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert))
+  :config
+  (org-roam-db-autosync-mode)
+  (setq org-roam-dailies-directory "journal")
+  (setq org-roam-node-display-template (concat "${title:40} " (propertize "${tags}" 'face 'marginalia-documentation))))
 #+end_src
 
 Use [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Advising-Functions.html][advising]] to define custom Emacs functions to automatically respond to prompts. The below function will temporarily replace the *yes-or-no-p* with a function that always returns true.
 
 #+begin_src emacs-lisp
-  (defun srashid3/org-roam-abort (func &rest args)
-    (message "Deleted file for aborted capture")
-    t)
+(defun srashid3/org-roam-abort (func &rest args)
+  (message "Deleted file for aborted capture")
+  t)
 
-  (defun srashid3/org-roam-capture (func &rest args)
-    (advice-add 'yes-or-no-p :around #'srashid3/org-roam-abort)
-    (let ((res (apply func args)))
-      (advice-remove 'yes-or-no-p #'srashid3/org-roam-abort)
-      res))
+(defun srashid3/org-roam-capture (func &rest args)
+  (advice-add 'yes-or-no-p :around #'srashid3/org-roam-abort)
+  (let ((res (apply func args)))
+    (advice-remove 'yes-or-no-p #'srashid3/org-roam-abort)
+    res))
 
-  (advice-add 'org-roam-capture--finalize :around #'srashid3/org-roam-capture)
+(advice-add 'org-roam-capture--finalize :around #'srashid3/org-roam-capture)
 #+end_src
 
 * Development Environment
@@ -843,11 +851,11 @@ The following modes provide terminal emulation.
 Define aliases for *eshell-mode*.
 
 #+begin_src emacs-lisp
-  (defun srashid3/eshell-aliases ()
-    (eshell/alias "clear" "clear 1")
-    (eshell/alias "venv" "python3 -m venv venv")
-    (eshell/alias "activate" "pyvenv-activate venv")
-    (eshell/alias "deactivate" "pyvenv-deactivate"))
+(defun srashid3/eshell-aliases ()
+  (eshell/alias "clear" "clear 1")
+  (eshell/alias "venv" "python3 -m venv venv")
+  (eshell/alias "activate" "pyvenv-activate venv")
+  (eshell/alias "deactivate" "pyvenv-deactivate"))
 #+end_src
 
 Rebind *C-r* to the Counsel command history. Note that the *eshell-mode-map* is defined as part of *esh-mode*.
@@ -855,23 +863,23 @@ Rebind *C-r* to the Counsel command history. Note that the *eshell-mode-map* is 
 Allow Eshell to modify to the global environment. This makes it easier to reload the *PATH* without restarting the buffer.
 
 #+begin_src emacs-lisp
-  (use-package eshell
-    :ensure nil
-    :after esh-mode
-    :bind (:map eshell-mode-map
-           ("C-r" . counsel-esh-history))
-    :hook (eshell-mode . srashid3/eshell-aliases)
-    :custom
-    (eshell-hist-ignoredups t)
-    (eshell-modify-global-environment t)
-    (eshell-bad-command-tolerance 100))
+(use-package eshell
+  :ensure nil
+  :after esh-mode
+  :bind (:map eshell-mode-map
+              ("C-r" . counsel-esh-history))
+  :hook (eshell-mode . srashid3/eshell-aliases)
+  :custom
+  (eshell-hist-ignoredups t)
+  (eshell-modify-global-environment t)
+  (eshell-bad-command-tolerance 100))
 #+end_src
 
 Define hook for reloading the *PATH* within Eshell.
 
 #+begin_src emacs-lisp
-  (defun srashid3/eshell-reload-path ()
-    (eshell-set-path (mapconcat 'identity exec-path ":")))
+(defun srashid3/eshell-reload-path ()
+  (eshell-set-path (mapconcat 'identity exec-path ":")))
 #+end_src
 
 ** Language Server
@@ -879,26 +887,26 @@ Define hook for reloading the *PATH* within Eshell.
 Add support for language servers with [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]. Defer loading until *lsp* or *lsp-deferred* is invoked within the buffer.
 
 #+begin_src emacs-lisp
-  (use-package lsp-mode
-    :commands (lsp lsp-deferred)
-    :custom
-    (lsp-keymap-prefix "C-c l")
-    (lsp-headerline-breadcrumb-icons-enable nil)    
-    :config
-    (lsp-enable-which-key-integration t))
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :custom
+  (lsp-keymap-prefix "C-c l")
+  (lsp-headerline-breadcrumb-icons-enable nil)
+  :config
+  (lsp-enable-which-key-integration t))
 #+end_src
 
 Add additional UI enchancements with [[https://github.com/emacs-lsp/lsp-ui][lsp-ui]]. By default lsp-mode activates lsp-ui unless configured otherwise.
 
 #+begin_src emacs-lisp
-  (use-package lsp-ui)
+(use-package lsp-ui)
 #+end_src
 
 Add additional Ivy interfaces with [[https://github.com/emacs-lsp/lsp-ivy][lsp-ivy]].
 
 #+begin_src emacs-lisp
-  (use-package lsp-ivy
-    :after lsp)
+(use-package lsp-ivy
+  :after lsp)
 #+end_src
 
 ** C
@@ -906,15 +914,15 @@ Add additional Ivy interfaces with [[https://github.com/emacs-lsp/lsp-ivy][lsp-i
 Configure language server for C. Note that *clangd* must be manually installed.
 
 #+begin_src emacs-lisp
-  (use-package c-mode
-    :ensure nil
-    :hook (c-mode . lsp-deferred))
+(use-package c-mode
+  :ensure nil
+  :hook (c-mode . lsp-deferred))
 #+end_src
 
 Set the default style and offset for indentation.
 
 #+begin_src emacs-lisp
-  (setq-default c-default-style "linux" c-basic-offset 4)
+(setq-default c-default-style "linux" c-basic-offset 4)
 #+end_src
 
 ** Python
@@ -922,23 +930,31 @@ Set the default style and offset for indentation.
 Configure language server for Python. Note that *pylsp* must be manually installed.
 
 #+begin_src emacs-lisp
-  (use-package python-mode
-    :ensure (:host github :repo "https://github.com/emacsmirror/python-mode")
-    :hook (python-mode . lsp-deferred))
+(use-package python-mode
+  :ensure (:host github :repo "https://github.com/emacsmirror/python-mode")
+  :hook (python-mode . lsp-deferred))
+#+end_src
+
+Set the default offset for indentation. Disable warnings for guessing mechanism.
+
+#+begin_src emacs-lisp
+(setq-default python-indent-offset 4)
+(setq python-indent-guess-indent-offset t)
+(setq python-indent-guess-indent-offset-verbose nil)
 #+end_src
 
 Install [[https://github.com/jorgenschaefer/pyvenv][pyvenv]] for virtual environment support.
 
 #+begin_src emacs-lisp
-  (use-package pyvenv
-    :init (pyvenv-mode 1))
+(use-package pyvenv
+  :init (pyvenv-mode 1))
 #+end_src
 
 Reload *PATH* in Eshell after activating or deactivating virtual environment.
 
 #+begin_src emacs-lisp
-  (add-hook 'pyvenv-post-activate-hooks 'srashid3/eshell-reload-path)
-  (add-hook 'pyvenv-post-deactivate-hooks 'srashid3/eshell-reload-path)
+(add-hook 'pyvenv-post-activate-hooks 'srashid3/eshell-reload-path)
+(add-hook 'pyvenv-post-deactivate-hooks 'srashid3/eshell-reload-path)
 #+end_src
 
 * Large Language Models
@@ -952,12 +968,12 @@ Setup [[https://github.com/xenodium/agent-shell][agent-shell]] for a native Emac
 Configure OpenCode as the primary harness. Disable writing transcripts to the filesystem.
 
 #+begin_src emacs-lisp
-  (defun srashid3/agent-shell-setup ()
-    (setq-local shell-maker-prompt-before-killing-buffer nil))
+(defun srashid3/agent-shell-setup ()
+  (setq-local shell-maker-prompt-before-killing-buffer nil))
 
-  (use-package agent-shell
-    :hook (agent-shell-mode . srashid3/agent-shell-setup)
-    :config
-    (setq agent-shell-preferred-agent-config 'opencode)
-    (setq agent-shell-transcript-file-path-function nil))
+(use-package agent-shell
+  :hook (agent-shell-mode . srashid3/agent-shell-setup)
+  :config
+  (setq agent-shell-preferred-agent-config 'opencode)
+  (setq agent-shell-transcript-file-path-function nil))
 #+end_src

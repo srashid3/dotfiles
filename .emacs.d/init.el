@@ -88,9 +88,9 @@
 
   (defvar-keymap srashid3/text-transform
     :doc "Keymap for text transformations."
-     "e" #'base64-encode-region
-     "d" #'base64-decode-region
-     "j" #'json-pretty-print)
+    "e" #'base64-encode-region
+    "d" #'base64-decode-region
+    "j" #'json-pretty-print)
 
   (add-to-list 'embark-keymap-alist '(region . srashid3/text-transform)))
 
@@ -304,29 +304,33 @@
 (use-package flyspell-correct
   :after flyspell
   :bind (:map flyspell-mode-map
-         ("M-TAB" . flyspell-correct-wrapper)))
+              ("M-TAB" . flyspell-correct-wrapper)))
 
 (use-package flyspell-correct-ivy
   :after flyspell-correct)
 
 (org-babel-do-load-languages
-'org-babel-load-languages
-'((emacs-lisp . t)
-  (shell . t)
-  (python . t)))
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (shell . t)
+   (python . t)))
 
 (require 'org-tempo)
 (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
 (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
 (add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
 
+(setq org-edit-src-content-indentation 0)
+(setq org-src-preserve-indentation t)
+(setq org-src-tab-acts-natively t)
+
 (use-package org-roam
   :custom
   (org-roam-directory (file-truename "~/GitHub/org-notes"))
   (org-roam-capture-templates
    '(("m" "main" plain "%?"
-    :if-new (file+head "main/${slug}.org" "#+title: ${title}\n#+filetags: :draft:\n")
-    :unnarrowed t)))
+      :if-new (file+head "main/${slug}.org" "#+title: ${title}\n#+filetags: :draft:\n")
+      :unnarrowed t)))
   :bind (("C-c n f" . org-roam-node-find)
          ("C-c n i" . org-roam-node-insert))
   :config
@@ -359,7 +363,7 @@
   :ensure nil
   :after esh-mode
   :bind (:map eshell-mode-map
-         ("C-r" . counsel-esh-history))
+              ("C-r" . counsel-esh-history))
   :hook (eshell-mode . srashid3/eshell-aliases)
   :custom
   (eshell-hist-ignoredups t)
@@ -373,7 +377,7 @@
   :commands (lsp lsp-deferred)
   :custom
   (lsp-keymap-prefix "C-c l")
-  (lsp-headerline-breadcrumb-icons-enable nil)    
+  (lsp-headerline-breadcrumb-icons-enable nil)
   :config
   (lsp-enable-which-key-integration t))
 
@@ -391,6 +395,10 @@
 (use-package python-mode
   :ensure (:host github :repo "https://github.com/emacsmirror/python-mode")
   :hook (python-mode . lsp-deferred))
+
+(setq-default python-indent-offset 4)
+(setq python-indent-guess-indent-offset t)
+(setq python-indent-guess-indent-offset-verbose nil)
 
 (use-package pyvenv
   :init (pyvenv-mode 1))
