@@ -130,17 +130,45 @@
 (dolist (mode '(org-mode-hook
                 term-mode-hook
                 eshell-mode-hook
-                eat-mode-hook
+                ghostel-mode-hook
                 agent-shell-mode-hook))
   (add-hook mode (lambda() (display-line-numbers-mode 0))))
 
 (delete-selection-mode t)
 
-(setq srashid3/font-height 180)
+(defun srashid3/calculate-dpi ()
+  (let ((px-height (display-pixel-height))
+        (mm-height (display-mm-height)))
+    (if (and mm-height (> mm-height 0))
+        (/ (* px-height 25.4) mm-height)
+      96.0)))
 
-(set-face-attribute 'default nil :font "Monospace" :height srashid3/font-height)
-(set-face-attribute 'fixed-pitch nil :font "Monospace" :height srashid3/font-height)
-(set-face-attribute 'variable-pitch nil :font "Cantarell" :height srashid3/font-height :weight 'regular)
+(defun srashid3/calculate-font-height ()
+  (let ((dpi (srashid3/calculate-dpi)))
+    (cond
+     ((>= dpi 200) 220)
+     ((>= dpi 120) 200)
+     (t 180))))
+
+(setq srashid3/font-height (srashid3/calculate-font-height))
+
+(defvar srashid3/font-fixed-pitch
+  (cond
+   ((find-font (font-spec :family "JetBrains Mono")) "JetBrains Mono")
+   (t "Monospace")))
+
+(defvar srashid3/font-variable-pitch
+  (cond
+   ((find-font (font-spec :family "Cantarell")) "Cantarell")
+   (t "Sans Serif")))
+
+(defun srashid3/set-terminal-font ()
+    (when (find-font (font-spec :family "JetBrains Mono"))
+      (face-remap-add-relative 'default :family "JetBrains Mono")))
+
+(set-face-attribute 'default nil :font srashid3/font-fixed-pitch :height srashid3/font-height)
+(set-face-attribute 'fixed-pitch nil :font srashid3/font-fixed-pitch :height srashid3/font-height)
+(set-face-attribute 'variable-pitch nil :font srashid3/font-variable-pitch :height srashid3/font-height :weight 'regular)
 
 (use-package mixed-pitch
   :hook
@@ -157,8 +185,8 @@
 (use-package shrink-path
   :ensure (:host github :repo "https://github.com/zbelial/shrink-path.el"))
 
-(use-package doom-themes
-  :init (load-theme 'wombat t))
+(use-package ef-themes
+  :init (load-theme 'ef-owl t))
 
 (use-package dashboard
   :config
@@ -220,7 +248,7 @@
 
 (dolist (mode '(term-mode
                 eshell-mode
-                eat-mode
+                ghostel-mode
                 dashboard-mode
                 agent-shell-mode))
   (evil-set-initial-state mode 'emacs))
@@ -256,7 +284,6 @@
   (visual-fill-column-mode 1))
 
 (use-package visual-fill-column
-  :ensure (:host github :repo "https://github.com/joostkremers/visual-fill-column")
   :hook (org-mode . srashid3/org-mode-visual-column))
 
 (use-package org-auto-tangle
@@ -319,9 +346,8 @@
 
 (advice-add 'org-roam-capture--finalize :around #'srashid3/org-roam-capture)
 
-(use-package eat
-  :ensure (:host github :repo "https://github.com/kephale/emacs-eat")
-  :hook (eshell-mode . eat-eshell-mode))
+(use-package ghostel
+  :hook (ghostel-mode-hook . srashid3/set-terminal-font))
 
 (defun srashid3/eshell-aliases ()
   (eshell/alias "clear" "clear 1")

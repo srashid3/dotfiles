@@ -31,6 +31,13 @@ $ brew install aspell llvm
 $ pip install python-lsp-server
 #+end_src
 
+Add custom fonts for improved rendering.
+
+#+begin_src shell
+$ brew install --cask font-cantarell
+$ brew install --cask font-jetbrains-mono
+#+end_src
+
 * Cross-Platform Support
 
 Emacs support on different operating systems.
@@ -384,7 +391,7 @@ Display line numbers in all buffers except for org-mode and terminals.
   (dolist (mode '(org-mode-hook
                   term-mode-hook
                   eshell-mode-hook
-                  eat-mode-hook
+                  ghostel-mode-hook
                   agent-shell-mode-hook))
     (add-hook mode (lambda() (display-line-numbers-mode 0))))
 #+end_src
@@ -399,26 +406,66 @@ By default, Emacs will append to the end of selected text. Enable *delete-select
 
 ** Fonts
 
-Set the font height.
+Calculate the DPI of the display, with a default of 96 if detection fails. Note that we need to convert the units since display drivers report dimensions in millimeters.
 
 #+begin_src emacs-lisp
-  (setq srashid3/font-height 180)
+(defun srashid3/calculate-dpi ()
+  (let ((px-height (display-pixel-height))
+        (mm-height (display-mm-height)))
+    (if (and mm-height (> mm-height 0))
+        (/ (* px-height 25.4) mm-height)
+      96.0)))
 #+end_src
 
-Configure the fonts used by standard faces. Note that the heights must be relatively close in size to avoid issues with line spacing in org-mode.
+Scale font size dynamically based on DPI.
 
 #+begin_src emacs-lisp
-  (set-face-attribute 'default nil :font "Monospace" :height srashid3/font-height)
-  (set-face-attribute 'fixed-pitch nil :font "Monospace" :height srashid3/font-height)
-  (set-face-attribute 'variable-pitch nil :font "Cantarell" :height srashid3/font-height :weight 'regular)
+(defun srashid3/calculate-font-height ()
+  (let ((dpi (srashid3/calculate-dpi)))
+    (cond
+     ((>= dpi 200) 220)
+     ((>= dpi 120) 200)
+     (t 180))))
+
+(setq srashid3/font-height (srashid3/calculate-font-height))
+#+end_src
+
+Set custom fonts with fallback mechanism.
+
+#+begin_src emacs-lisp
+(defvar srashid3/font-fixed-pitch
+  (cond
+   ((find-font (font-spec :family "JetBrains Mono")) "JetBrains Mono")
+   (t "Monospace")))
+
+(defvar srashid3/font-variable-pitch
+  (cond
+   ((find-font (font-spec :family "Cantarell")) "Cantarell")
+   (t "Sans Serif")))
+#+end_src
+
+Override for terminal emulators to ensure perfect TUI rendering.
+
+#+begin_src emacs-lisp
+(defun srashid3/set-terminal-font ()
+    (when (find-font (font-spec :family "JetBrains Mono"))
+      (face-remap-add-relative 'default :family "JetBrains Mono")))
+#+end_src
+
+Configure the standard faces. Note that heights must be relatively close to avoid issues with line spacing.
+
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil :font srashid3/font-fixed-pitch :height srashid3/font-height)
+  (set-face-attribute 'fixed-pitch nil :font srashid3/font-fixed-pitch :height srashid3/font-height)
+  (set-face-attribute 'variable-pitch nil :font srashid3/font-variable-pitch :height srashid3/font-height :weight 'regular)
 #+end_src
 
 Use [[https://github.com/emacsmirror/mixed-pitch][mixed-pitch]] to automatically handle fixed-pitch and variable-pitch fonts.
 
 #+begin_src emacs-lisp
-  (use-package mixed-pitch
-    :hook
-    (text-mode . mixed-pitch-mode))
+(use-package mixed-pitch
+  :hook
+  (text-mode . mixed-pitch-mode))
 #+end_src
 
 ** Icons
@@ -456,11 +503,11 @@ Explicitly install [[https://github.com/zbelial/shrink-path.el][shrink-path]] as
 
 ** Themes
 
-Install additional themes from Doom Emacs.
+Install additional themes from Protesilaos.
 
 #+begin_src emacs-lisp
-  (use-package doom-themes
-    :init (load-theme 'wombat t))
+  (use-package ef-themes
+    :init (load-theme 'ef-owl t))
 #+end_src
 
 ** Dashboard
@@ -580,7 +627,7 @@ Configure the terminal to default to Emacs mode. Press *C-z* to toggle Emacs mod
 #+begin_src emacs-lisp
   (dolist (mode '(term-mode
                   eshell-mode
-                  eat-mode
+                  ghostel-mode
                   dashboard-mode
                   agent-shell-mode))
     (evil-set-initial-state mode 'emacs))
@@ -646,7 +693,7 @@ Customize unordered lists with [[https://github.com/sabof/org-bullets][org-bulle
 
 ** Visual Column
 
-Visually center text with [[https://github.com/joostkremers/visual-fill-column][visual-fill-column]].
+Visually center text with [[https://codeberg.org/joostkremers/visual-fill-column][visual-fill-column]].
 
 #+begin_src emacs-lisp
   (defun srashid3/org-mode-visual-column ()
@@ -654,7 +701,6 @@ Visually center text with [[https://github.com/joostkremers/visual-fill-column][
     (visual-fill-column-mode 1))
 
   (use-package visual-fill-column
-    :ensure (:host github :repo "https://github.com/joostkremers/visual-fill-column")
     :hook (org-mode . srashid3/org-mode-visual-column))
 #+end_src
 
@@ -781,15 +827,13 @@ The following modes provide terminal emulation.
 - ansi-term
 - vterm
 - eat
+- ghostel
 
-[[https://codeberg.org/akib/emacs-eat/][Eat]] is an alternative Emacs Lisp terminal emulator, providing significant improvements over *term* without the external dependencies of *vterm*. Eat also integrates with Eshell, enabling support for full screen terminal applications.
-
-Note that *eat-compile-terminfo* must be run on a clean install.
+[[https://github.com/dakra/ghostel][Ghostel]] is a modern GPU accelerated terminal emulator for Emacs. It is powered by *libghostty-vt*, the same engine as the [[https://github.com/ghostty-org/ghostty][Ghostty]] terminal. Since it can process ASCII at speeds of up to 75 MB/s, it is considered ideal for LLMs.
 
 #+begin_src emacs-lisp
-  (use-package eat
-    :ensure (:host github :repo "https://github.com/kephale/emacs-eat")
-    :hook (eshell-mode . eat-eshell-mode))
+(use-package ghostel
+  :hook (ghostel-mode-hook . srashid3/set-terminal-font))
 #+end_src
 
 ** Shell
